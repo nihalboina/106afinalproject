@@ -1,0 +1,1 @@
+#TODO, ROS modular layout, and should connect to the sawyer cam, use real-time camera input, figure out where the block is, and generate appropriate placing instructions
