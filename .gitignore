@@ -1,0 +1,3 @@
+# Ignore YOLOv3  weights— too big
+in_gen/yolov3.weights
+in_gen/.DS_Store
