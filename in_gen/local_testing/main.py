@@ -1,176 +1,118 @@
 import cv2
 import numpy as np
-from stl import mesh
-import os
-from datetime import datetime
+import open3d as o3d
 
-# Load the STL file
-your_mesh = mesh.Mesh.from_file('block.stl')
+# Function to render the STL model to an image and get its edges
 
-# Camera intrinsic parameters (assuming known or calibrated)
-camera_matrix = np.array([[800, 0, 320],
-                          [0, 800, 240],
-                          [0,   0,   1]], dtype=np.float64)
-dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
 
-# Define 3D model points of the block's corners
-# Adjust these points based on the actual dimensions of your block.stl
-model_points = np.array([
-    [-0.5, -0.5, 0],  # Top-left-front
-    [0.5, -0.5, 0],   # Top-right-front
-    [0.5, 0.5, 0],    # Bottom-right-front
-    [-0.5, 0.5, 0],   # Bottom-left-front
-], dtype="double")
+def render_stl_to_edge_image(mesh, width=500, height=500):
+    # Set up Open3D visualizer
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=width, height=height, visible=False)
+    vis.add_geometry(mesh)
+    ctr = vis.get_view_control()
+    ctr.set_zoom(0.8)
+    vis.poll_events()
+    vis.update_renderer()
+
+    # Capture image from the visualizer
+    img = vis.capture_screen_float_buffer(False)
+    vis.destroy_window()
+    img = np.asarray(img)
+    img = (img * 255).astype(np.uint8)
+
+    # Convert the image from RGB to grayscale
+    gray_model = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+    # Use Canny edge detection to get edges of the model
+    edges_model = cv2.Canny(gray_model, 50, 150)
+
+    return edges_model
+
+
+# Load the STL model
+mesh = o3d.io.read_triangle_mesh('block.stl')
+if mesh.is_empty():
+    print("Failed to load mesh. Please check the STL file.")
+    exit()
+mesh.compute_vertex_normals()
+
+# Render the STL model to get its edge image
+model_edges = render_stl_to_edge_image(mesh)
+
+# Find contours in the model edge image
+model_contours, _ = cv2.findContours(
+    model_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+if len(model_contours) == 0:
+    print("No contours found in model edge image.")
+    exit()
+model_cnt = max(model_contours, key=cv2.contourArea)
+
+# Compute shape descriptors (Hu moments) of the model's contour
+model_hu_moments = cv2.HuMoments(cv2.moments(model_cnt)).flatten()
 
 # Initialize the camera
 cap = cv2.VideoCapture(0)
-
-# Load YOLO network
-net = cv2.dnn.readNet('yolov3.weights', 'yolov3.cfg')
-
-# Load the classes (Ensure 'book' is included in the coco.names file)
-classes = []
-with open('coco.names', 'r') as f:
-    classes = [line.strip() for line in f.readlines()]
-
-layer_names = net.getLayerNames()
-output_layers = [layer_names[int(i) - 1]
-                 for i in net.getUnconnectedOutLayers()]
-
-# Create a directory to save images if it doesn't exist
-output_dir = "detected_frames"
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+if not cap.isOpened():
+    print("Cannot open camera")
+    exit()
 
 while True:
     ret, frame = cap.read()
     if not ret:
+        print("Can't receive frame (stream end?). Exiting ...")
         break
 
-    height, width, channels = frame.shape
+    # Convert the frame to grayscale
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # Prepare the frame for YOLO detection
-    blob = cv2.dnn.blobFromImage(
-        frame, scalefactor=1/255.0, size=(416, 416), swapRB=True, crop=False)
-    net.setInput(blob)
-    outs = net.forward(output_layers)
+    # Use Canny edge detection on the grayscale frame
+    edges_frame = cv2.Canny(gray_frame, 50, 150)
 
-    # Initialize lists for detected bounding boxes, confidences, and class IDs
-    class_ids = []
-    confidences = []
-    boxes = []
+    # Find contours in the edge image
+    contours, _ = cv2.findContours(
+        edges_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Process YOLO detections
-    for out in outs:
-        for detection in out:
-            scores = detection[5:]
-            class_id = np.argmax(scores)
-            confidence = scores[class_id]
-            # Adjust the confidence threshold and class name as needed
-            # Changed 'block' to 'book'
-            if confidence > 0.5 and classes[class_id] == 'book':
-                # Object detected
-                center_x = int(detection[0]*width)
-                center_y = int(detection[1]*height)
-                w = int(detection[2]*width)
-                h = int(detection[3]*height)
-                x = int(center_x - w/2)
-                y = int(center_y - h/2)
-                boxes.append([x, y, w, h])
-                confidences.append(float(confidence))
-                class_ids.append(class_id)
+    # Create a copy of the frame to draw on
+    output_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
 
-    # Apply Non-Max Suppression
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+    for cnt in contours:
+        # Ignore small contours that may be noise
+        if cv2.contourArea(cnt) < 500:
+            continue
 
-    # Flag to indicate if an object was detected in this frame
-    object_detected = False
+        # Compute shape descriptors (Hu moments)
+        moments = cv2.moments(cnt)
+        if moments['m00'] == 0:
+            continue
+        hu_moments = cv2.HuMoments(moments).flatten()
 
-    # If the object is detected, estimate its pose
-    if len(indexes) > 0:
-        object_detected = True  # Set the flag
-        for i in indexes.flatten():
-            x, y, w, h = boxes[i]
-            # Draw red bounding box
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+        # Compute similarity measure using cv2.matchShapes
+        similarity = cv2.matchShapes(
+            model_cnt, cnt, cv2.CONTOURS_MATCH_I1, 0.0)
 
-            # Calculate center point of the bounding box
-            center_x_box = x + w / 2
-            center_y_box = y + h / 2
+        # Compute score as inverse of similarity measure
+        # The lower the similarity value, the better the match
+        # We invert and scale to get a percentage
+        score = 1 / (1 + similarity)
+        percentage = score * 100
 
-            # Display the 2D coordinates on the image
-            cv2.putText(frame, f"2D Coordinates: x={int(center_x_box)}, y={int(center_y_box)}",
-                        (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        # Limit percentage to [0, 100]
+        percentage = min(max(percentage, 0), 100)
 
-            # Define 2D image points from the bounding box corners
-            image_points = np.array([
-                [x, y],          # Top-left corner
-                [x + w, y],      # Top-right corner
-                [x + w, y + h],  # Bottom-right corner
-                [x, y + h],      # Bottom-left corner
-            ], dtype="double")
+        # Get bounding box around the contour
+        x, y, w, h = cv2.boundingRect(cnt)
 
-            # Estimate pose using solvePnP
-            success, rotation_vector, translation_vector = cv2.solvePnP(
-                model_points, image_points, camera_matrix, dist_coeffs)
+        # Draw bounding box and percentage chance
+        cv2.rectangle(output_frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        cv2.putText(output_frame, f"{percentage:.2f}%", (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            if success:
-                # Project model points to image plane for visualization
-                (proj_points, _) = cv2.projectPoints(
-                    model_points, rotation_vector, translation_vector, camera_matrix, dist_coeffs)
-                for p in proj_points:
-                    cv2.circle(frame, (int(p[0][0]), int(
-                        p[0][1])), 5, (0, 255, 0), -1)  # Green dots for projected points
+    # Display the output frame
+    cv2.imshow('Output', output_frame)
 
-                # Convert rotation vector to rotation matrix
-                rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
-
-                # Calculate Euler angles from rotation matrix
-                sy = np.sqrt(rotation_matrix[0, 0]
-                             ** 2 + rotation_matrix[1, 0] ** 2)
-                singular = sy < 1e-6
-
-                if not singular:
-                    x_angle = np.arctan2(
-                        rotation_matrix[2, 1], rotation_matrix[2, 2])
-                    y_angle = np.arctan2(-rotation_matrix[2, 0], sy)
-                    z_angle = np.arctan2(
-                        rotation_matrix[1, 0], rotation_matrix[0, 0])
-                else:
-                    x_angle = np.arctan2(-rotation_matrix[1, 2],
-                                         rotation_matrix[1, 1])
-                    y_angle = np.arctan2(-rotation_matrix[2, 0], sy)
-                    z_angle = 0
-
-                # Convert radians to degrees
-                x_angle = np.degrees(x_angle)
-                y_angle = np.degrees(y_angle)
-                z_angle = np.degrees(z_angle)
-
-                # Display predicted x, y, z and orientation
-                position = translation_vector.flatten()
-                cv2.putText(frame, f"Position: x={position[0]:.2f}, y={position[1]:.2f}, z={position[2]:.2f}",
-                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-                cv2.putText(frame, f"Orientation: x={x_angle:.2f}, y={y_angle:.2f}, z={z_angle:.2f}",
-                            (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-            else:
-                cv2.putText(frame, "Pose estimation failed", (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-    # Save the frame if an object was detected
-    if object_detected:
-        # Get the current timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        # Create the filename
-        filename = f"{output_dir}/detected_{timestamp}.png"
-        # Save the frame as a PNG image
-        cv2.imwrite(filename, frame)
-        print(f"Saved frame: {filename}")
-
-    # Display the frame
-    cv2.imshow('frame', frame)
     # Break the loop on 'q' key press
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) == ord('q'):
         break
 
 # Release resources
