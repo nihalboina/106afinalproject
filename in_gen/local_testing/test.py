@@ -162,4 +162,4 @@ matched_image_path = 'matched_features.jpg'
 cv2.imwrite(matched_image_path, matched_image)
 
 # Output results
-matched_image_path, H, R, t
+print(matched_image_path, H, R, t)
