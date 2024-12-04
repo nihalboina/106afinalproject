@@ -113,9 +113,8 @@ cropped_filename = "cropped.jpg"
 process_image(input_filename, output_filename, cropped_filename)
 
 
-# now (assuming we have multiple stls, ask gpt which one it is)
-
-# since we have only one right now, just assume it as block.stl
+# Now (assuming we have multiple STLs, ask GPT which one it is)
+# Since we have only one right now, just assume it as block.stl
 selected_stl = "block.stl"
 
 
@@ -151,15 +150,60 @@ if len(matches) > 10:
     H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
     if H is not None:
         # Decompose the homography matrix to extract rotation and translation
-        _, R, t, _ = cv2.decomposeHomographyMat(H, np.eye(3))
+        num_solutions, Rs, ts, normals = cv2.decomposeHomographyMat(
+            H, np.eye(3))
+        print(
+            f"Number of solutions from homography decomposition: {num_solutions}")
+
+        # We'll use the first solution as an example
+        R = Rs[0]
+        t = ts[0]
+        normal = normals[0]
+
+        # Convert rotation matrix to Euler angles (Rx, Ry, Rz)
+        def rotationMatrixToEulerAngles(R):
+            sy = np.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+            singular = sy < 1e-6
+
+            if not singular:
+                x = np.arctan2(R[2, 1], R[2, 2])
+                y = np.arctan2(-R[2, 0], sy)
+                z = np.arctan2(R[1, 0], R[0, 0])
+            else:
+                x = np.arctan2(-R[1, 2], R[1, 1])
+                y = np.arctan2(-R[2, 0], sy)
+                z = 0
+
+            return np.degrees(np.array([x, y, z]))
+
+        Rx, Ry, Rz = rotationMatrixToEulerAngles(R)
+        print(
+            f"\nOrientation (Euler angles): Rx={Rx:.2f}, Ry={Ry:.2f}, Rz={Rz:.2f}")
+        print(f"Position (translation vector): t={t.flatten()}")
+
+        # Load the output image and annotate it
+        output_image = cv2.imread(output_filename)
+
+        # Add text annotations for position and orientation
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = f"Position: t = [{t[0][0]:.2f}, {t[1][0]:.2f}, {t[2][0]:.2f}]"
+        cv2.putText(output_image, text, (10, 30), font, 0.7, (0, 0, 255), 2)
+
+        text = f"Orientation: Rx={Rx:.2f}, Ry={Ry:.2f}, Rz={Rz:.2f}"
+        cv2.putText(output_image, text, (10, 60), font, 0.7, (0, 0, 255), 2)
+
+        # Save the annotated image
+        cv2.imwrite(output_filename, output_image)
+        print(f"Annotated image saved as {output_filename}")
+
     else:
+        print("Homography decomposition failed. R and t are not available.")
         R, t = None, None
 else:
+    print("Not enough matches to compute homography.")
     H, R, t = None, None, None
 
 # Save matched image for inspection
 matched_image_path = 'matched_features.jpg'
 cv2.imwrite(matched_image_path, matched_image)
-
-# Output results
-print(matched_image_path, H, R, t)
+print(f"\nMatched features image saved as {matched_image_path}")
