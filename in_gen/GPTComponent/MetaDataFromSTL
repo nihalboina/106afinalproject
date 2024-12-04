@@ -1,0 +1,105 @@
+import numpy as np
+import json
+from stl import mesh
+import os
+
+def load_stl_file(stl_file):
+    """Load an STL file and extract mesh data."""
+    if not os.path.exists(stl_file):
+        raise FileNotFoundError(f"File {stl_file} not found.")
+    return mesh.Mesh.from_file(stl_file)
+
+def compute_bounding_box(stl_mesh):
+    """Compute the bounding box and center of the block."""
+    min_bounds = np.min(stl_mesh.vectors, axis=(0, 1))
+    max_bounds = np.max(stl_mesh.vectors, axis=(0, 1))
+
+    dimensions = (max_bounds - min_bounds).tolist()
+    center = ((max_bounds + min_bounds) / 2).tolist()
+
+    return {
+        "dimensions": dimensions,
+        "center": center,
+        "min_bounds": min_bounds.tolist(),
+        "max_bounds": max_bounds.tolist()
+    }
+
+def filter_studs_and_holes(points, expected_radius, z_tolerance=0.2):
+    """Filter points to detect circular studs and holes based on radius."""
+    valid_positions = []
+    for point in points:
+        distances = np.linalg.norm(points - point, axis=1)
+        if np.isclose(distances, expected_radius, atol=z_tolerance).sum() > 4:
+            valid_positions.append(tuple(point[:2])) 
+    return list({pos for pos in valid_positions})
+
+def detect_stud_hole_positions(stl_mesh):
+    """Accurately extract the positions and dimensions of studs and holes."""
+    all_z_values = stl_mesh.vectors[:, :, 2].flatten()
+
+    z_top_threshold = np.max(all_z_values) - 1.5 
+    z_bottom_threshold = np.min(all_z_values) + 1.5 
+
+    stud_points = stl_mesh.vectors[np.all(stl_mesh.vectors[:, :, 2] > z_top_threshold, axis=1)]
+    hole_points = stl_mesh.vectors[np.all(stl_mesh.vectors[:, :, 2] < z_bottom_threshold, axis=1)]
+
+    expected_stud_radius = 2.4
+
+    stud_positions = filter_studs_and_holes(stud_points.reshape(-1, 3), expected_stud_radius)
+    hole_positions = filter_studs_and_holes(hole_points.reshape(-1, 3), expected_stud_radius)
+
+    return {"stud_positions": stud_positions, "hole_positions": hole_positions}
+
+def extract_orientation_info():
+    """Provide default orientation information."""
+    return {
+        "default_orientation": [0, 0, 0], 
+        "attachable_axes": ["z"], 
+    }
+
+def save_json(data, output_file):
+    """Convert numpy float32 values to native Python types and save the block metadata to a JSON file."""
+    def convert_to_python_type(obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.float32, np.float64)):
+            return float(obj)
+        if isinstance(obj, (np.int32, np.int64)):
+            return int(obj)
+        return obj
+
+    with open(output_file, 'w') as f:
+        json.dump(data, f, indent=4, default=convert_to_python_type)
+    print(f"Block metadata saved to {output_file}")
+
+
+def extract_block_metadata(stl_file):
+    """Extract all relevant metadata from the STL file."""
+    stl_mesh = load_stl_file(stl_file)
+
+    bounding_box = compute_bounding_box(stl_mesh)
+    stud_hole_data = detect_stud_hole_positions(stl_mesh)
+    orientation_data = extract_orientation_info()
+
+    block_data = {
+        "bounding_box": bounding_box,
+        "stud_hole_data": stud_hole_data,
+        "orientation": orientation_data,
+        "color": "red",  
+        "position": [0, 0, 0]  
+    }
+
+    return block_data
+
+def main():
+    stl_file = "/Users/rohilkhare/106afinal/3d-printable-lego-brick.stl"
+    try:
+        block_data = extract_block_metadata(stl_file)
+        output_file = stl_file.replace(".stl", "_metadata.json")
+        save_json(block_data, output_file)
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()

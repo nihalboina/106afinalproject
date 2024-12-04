@@ -1,0 +1,45 @@
+import pyvista as pv
+import json
+
+def load_structure_from_json(file_path):
+    """Load the block structure data from a JSON file."""
+    with open(file_path, 'r') as f:
+        structure_data = json.load(f)
+    return structure_data['blocks']
+
+def load_lego_stl(file_path):
+    """Load the LEGO block STL file."""
+    return pv.read(file_path)
+
+def render_structure_from_stl(blocks, stl_file_path):
+    """Render the LEGO block structure based on the STL file with PyVista."""
+    lego_block_mesh = load_lego_stl(stl_file_path)
+
+    plotter = pv.Plotter()
+    for block in blocks:
+        position = block["position"]
+        orientation = block["orientation"]
+        color = block["color"]
+
+        transformed_block = lego_block_mesh.copy()
+        transformed_block.rotate_z(orientation[2], inplace=True)
+        transformed_block.rotate_y(orientation[1], inplace=True)
+        transformed_block.rotate_x(orientation[0], inplace=True)
+        transformed_block.translate(position, inplace=True)
+        plotter.add_mesh(transformed_block, color=color, show_edges=True)
+
+    plotter.show()
+
+def main():
+    json_file_path = "/Users/rohilkhare/106afinal/Chatgpt_input.json"
+    stl_file_path = "Block+v2.stl"
+
+    try:
+        blocks = load_structure_from_json(json_file_path)
+        render_structure_from_stl(blocks, stl_file_path)
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()
