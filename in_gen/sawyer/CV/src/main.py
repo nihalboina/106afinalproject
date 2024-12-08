@@ -7,6 +7,7 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import intera_interface
+from std_msgs.msg import Float64MultiArray
 
 # Initialize ROS node
 rospy.init_node('object_pose_estimation', anonymous=True)
@@ -47,6 +48,15 @@ output_layers = [layer_names[int(i) - 1]
 output_dir = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/sawyer/CV/src/detected_frames"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+# Add after rospy.init_node():
+block_pose_pub = rospy.Publisher('/block_target_pose', Float64MultiArray, queue_size=10)
+
+# Add this function to publish target poses:
+def publish_target_pose(current_pose, target_pose):
+    msg = Float64MultiArray()
+    msg.data = current_pose[0] + current_pose[1] + target_pose[0] + target_pose[1]
+    block_pose_pub.publish(msg)
 
 def image_callback(msg):
     # Convert ROS image message to OpenCV format
