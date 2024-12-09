@@ -62,15 +62,22 @@ def setup():
         if not (os.path.exists(output_top_down) and os.path.exists(output_top_left)):
             plot_stl_views(full_obj_path, output_top_down, output_top_left)
 
-def run_cv(img, number_objects=1):
+def run_cv(img, number_objects=3):
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # Apply Gaussian Blur
+    # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    # Apply Thresholding
-    _, thresholded = cv2.threshold(blurred, 127, 255, cv2.THRESH_BINARY)
+    # Apply Otsu's Thresholding
+    _, thresholded = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Save the thresholded image for debugging
+    cv2.imwrite(f"/path/to/debug/thresholded_{time.time()}.png", thresholded)
+
+    # Apply Morphological Operations to remove small noise
+    kernel = np.ones((3, 3), np.uint8)
+    thresholded = cv2.morphologyEx(thresholded, cv2.MORPH_OPEN, kernel, iterations=2)
 
     # Find contours
     contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -78,26 +85,100 @@ def run_cv(img, number_objects=1):
     # Define a function to check if a bounding box is square-ish
     def is_squareish(w, h):
         ratio = max(w, h) / min(w, h)
-        return ratio <= 1.33  # Allow up to 33% difference
+        return ratio <= 1.5  # Adjusted to allow more variance
 
-    # Initialize variables to track the largest square-ish object
+    # Initialize variables to track the largest square-ish objects
     rectangles = []
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         if is_squareish(w, h):
-            # Store rectangle information: top-left, bottom-right, color, thickness, area
+            # Store rectangle information
             rectangle = [(x, y), (x + w, y + h), (0, 255, 0), 2, w * h]
             rectangles.append(rectangle)
+
+    print(f"Detected rectangles: {rectangles}")
     
     # Sort rectangles by area in descending order
     rectangles = sorted(rectangles, key=lambda x: -x[-1])
 
-    # Draw the top 'number_objects' rectangles
-    for rect_ind in range(min(len(rectangles), number_objects)):
-        rect_info = rectangles[rect_ind]
-        cv2.rectangle(img, rect_info[0], rect_info[1], rect_info[2], rect_info[3])
+    orb = cv2.ORB_create()
+
+    stl_image_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/sawyer/CV/src/generated_views/block_top_left_corner_view.png"
+    stl_image = cv2.imread(stl_image_path, cv2.IMREAD_GRAYSCALE)
+    if stl_image is None:
+        raise ValueError(f"Could not load STL reference image from {stl_image_path}")
+    
+    keypoints_stl, descriptors_stl = orb.detectAndCompute(stl_image, None)
+    if descriptors_stl is None or len(keypoints_stl) == 0:
+        raise ValueError("No keypoints found in the STL reference image.")
+
+    # Process each rectangle
+    for rect_info in rectangles[:number_objects]:
+        print(f"rect_info: {rect_info}")
+        # Corrected slicing
+        isolate_rectangle = img[rect_info[0][1]:rect_info[1][1], rect_info[0][0]:rect_info[1][0]]
+        keypoints_real, descriptors_real = orb.detectAndCompute(isolate_rectangle, None)
+        
+        if descriptors_real is None or len(keypoints_real) == 0:
+            print("No keypoints found in the isolated rectangle. Skipping to next rectangle.")
+            continue
+        
+        # Match descriptors
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        matches = bf.match(descriptors_real, descriptors_stl)
+        if len(matches) < 4:
+            print("Not enough matches to compute homography. Skipping to next rectangle.")
+            continue
+
+        # Proceed with homography computation
+        matches = sorted(matches, key=lambda x: x.distance)
+        src_pts = np.float32([keypoints_real[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
+        dst_pts = np.float32([keypoints_stl[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
+
+        # Compute homography matrix
+        H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        if H is not None:
+            # Decompose the homography matrix
+            num_solutions, Rs, ts, normals = cv2.decomposeHomographyMat(H, np.eye(3))
+            print(f"Number of solutions from homography decomposition: {num_solutions}")
+
+            # Use the first solution
+            R = Rs[0]
+            t = ts[0]
+            normal = normals[0]
+
+            # Convert rotation matrix to Euler angles
+            def rotationMatrixToEulerAngles(R):
+                sy = np.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+                singular = sy < 1e-6
+
+                if not singular:
+                    x = np.arctan2(R[2, 1], R[2, 2])
+                    y = np.arctan2(-R[2, 0], sy)
+                    z = np.arctan2(R[1, 0], R[0, 0])
+                else:
+                    x = np.arctan2(-R[1, 2], R[1, 1])
+                    y = np.arctan2(-R[2, 0], sy)
+                    z = 0
+
+                return np.degrees(np.array([x, y, z]))
+
+            Rx, Ry, Rz = rotationMatrixToEulerAngles(R)
+            print(f"\nOrientation (Euler angles): Rx={Rx:.2f}, Ry={Ry:.2f}, Rz={Rz:.2f}")
+            print(f"Position (translation vector): t={t.flatten()}")
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            text = f"Position: t = [{t[0][0]:.2f}, {t[1][0]:.2f}, {t[2][0]:.2f}]"
+            cv2.putText(img, text, (rect_info[0][0], rect_info[0][1] - 10), font, 0.7, (0, 0, 255), 2)
+
+            text = f"Orientation: Rx={Rx:.2f}, Ry={Ry:.2f}, Rz={Rz:.2f}"
+            cv2.putText(img, text, (rect_info[0][0], rect_info[0][1] + 20), font, 0.7, (0, 0, 255), 2)
+
+            cv2.rectangle(img, rect_info[0], rect_info[1], rect_info[2], rect_info[3])
+        else:
+            print("Homography computation failed. Skipping to next rectangle.")
 
     return img
+
 
 
 
@@ -115,7 +196,7 @@ def image_callback(msg):
 
         # run_cv on it
 
-        # cv_image = run_cv(cv_image)
+        cv_image = run_cv(cv_image)
 
         # Display the image in a window
         cv2.imshow("Right Hand Camera", cv_image)
