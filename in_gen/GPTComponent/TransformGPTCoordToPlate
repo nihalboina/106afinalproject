@@ -1,0 +1,107 @@
+import numpy as np
+
+def skew_3d(omega):
+    return np.array([
+        [0, -omega[2], omega[1]],
+        [omega[2], 0, -omega[0]],
+        [-omega[1], omega[0], 0]
+    ])
+
+def rotation_about_z(theta):
+    return np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,              0,             1]
+    ])
+
+def se3_log(G):
+    """
+    Computes the matrix log of an SE(3) transformation G to find xi and theta.
+    G = exp(hat(xi)*theta)
+    
+    Args:
+        G - (4,4) ndarray: SE(3) transform matrix
+
+    Returns:
+        xi - (6,) ndarray: twist vector (v_x, v_y, v_z, omega_x, omega_y, omega_z)
+        theta - scalar: rotation amount
+    """
+    R = G[0:3,0:3]
+    p = G[0:3,3]
+    
+    # Compute theta
+    cos_theta = (np.trace(R) - 1) / 2.0
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+    theta = np.arccos(cos_theta)
+
+    if np.abs(theta) < 1e-12:
+        omega = np.zeros(3)
+        v = p
+    else:
+        omega_hat = (R - R.T)/(2*np.sin(theta))
+        omega = np.array([omega_hat[2,1], omega_hat[0,2], omega_hat[1,0]])
+
+        omega_norm = np.linalg.norm(omega)
+        if omega_norm < 1e-12:
+            v = p
+        else:
+            A = (np.eye(3) - R) @ skew_3d(omega) + np.outer(omega, omega)*theta
+            # Solve for v
+            if np.linalg.cond(A) < 1e12:
+                v = np.linalg.solve(A, p)
+            else:
+                v = p
+
+    xi = np.hstack([v, omega])
+    return xi, theta
+
+if __name__ == "__main__":
+    points = np.array([
+        [60.0, 60.0, 0.0],
+        [-60.0, 60.0, 0.0],
+        [60.0, -60.0, 0.0],
+        [-60.0, -60.0, 0.0],
+        [0.0, 60.0, 0.0],
+        [0.0, -60.0, 0.0],
+        [60.0, 0.0, 0.0],
+        [-60.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        [30.0, 30.0, 40.0],
+        [-30.0, 30.0, 40.0],
+        [30.0, -30.0, 40.0],
+        [-30.0, -30.0, 40.0],
+        [0.0, 30.0, 40.0],
+        [0.0, -30.0, 40.0],
+        [30.0, 0.0, 40.0],
+        [-30.0, 0.0, 40.0],
+        [15.0, 15.0, 80.0],
+        [-15.0, 15.0, 80.0],
+        [15.0, -15.0, 80.0],
+        [-15.0, -15.0, 80.0],
+        [0.0, 0.0, 120.0],
+    ])
+
+    theta_deg = 45.0 #FINDFROMCV
+    theta_rad = np.radians(theta_deg)
+    delta_x = 10.0 #FINDFROMCV
+    delta_y = 20.0 #FINDFROMCV
+    delta_z = 5.0 #FINDFROMCV
+
+    R = rotation_about_z(theta_rad)
+    p = np.array([delta_x, delta_y, delta_z])
+
+    G = np.eye(4)
+    G[0:3,0:3] = R
+    G[0:3,3] = p
+
+    xi, angle = se3_log(G)
+
+    num_points = points.shape[0]
+    points_hom = np.hstack([points, np.ones((num_points,1))]) 
+    transformed_points_hom = (G @ points_hom.T).T  
+    transformed_points = transformed_points_hom[:, :3]
+
+    print("Twist (xi):", xi)
+    print("Angle (theta):", angle)
+    print("\nTransformed Points:")
+    print(transformed_points)
