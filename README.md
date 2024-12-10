@@ -14,3 +14,23 @@ instruction generation (some algo stuff to put combine 1. + 2. to get from list 
 in_exec (instruction execution)
 
 PID stuff to go from all instructions to executing properly
+
+
+
+Command line instructions:
+
+Connect to sawyer
+source ~ee106a/sawyer_setup.bash
+
+Enable sawyer
+rosrun intera_interface enable_robot.py -e
+
+Start the intera action server
+rosrun intera_interface joint_trajectory_action_server.py
+
+Start MoveIt to enable inverse kinematics and usage of the MoveIt controller
+roslaunch sawyer_moveit_config sawyer_moveit.launch electric_gripper:=true
+
+Place sawyer in a good starting joint configuration
+roslaunch intera_examples sawyer_tuck.launch
+
