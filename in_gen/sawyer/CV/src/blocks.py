@@ -353,12 +353,12 @@ def main():
     right_hand_camera_topic = "/io/internal_camera/right_hand_camera/image_raw"
     camera_frame = "right_hand_camera_frame"  # Replace with actual camera frame ID
     camera_calibration = {
-        'fx': 600,  # Example focal length in pixels
-        'fy': 600,
-        'cx': 320,  # Example principal point
-        'cy': 240,
+        'fx': 640,  # Example focal length in pixels
+        'fy': 400,
+        'cx': 640,  # Example principal point
+        'cy': 400,
         # Assume blocks are 0.5 meters away (can be adjusted or estimated)
-        'depth': 0.5
+        'depth': 0.760
     }
 
     rospy.init_node('blocks_publisher', anonymous=True)
