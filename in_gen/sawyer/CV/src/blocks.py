@@ -74,8 +74,8 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         # Convert PoseStamped to transformation matrix
         # First, get the transform from camera frame to world frame
         transform = tf_buffer.lookup_transform(
-            "world",
             camera_pose.header.frame_id,
+            "world",
             rospy.Time(0),
             rospy.Duration(1.0)
         )
@@ -309,7 +309,7 @@ def run_cv(blocks_image_msg, background_image_msg, previous_blocks, camera_calib
     return current_detected
 
 
-def get_camera_pose(tf_buffer, camera_frame):
+def get_camera_pose(tf_buffer):
     """
     Get the current pose of the camera in the world frame.
 
@@ -322,8 +322,11 @@ def get_camera_pose(tf_buffer, camera_frame):
     """
     try:
         # Lookup the latest available transform
+        # transform = tf_buffer.lookup_transform(
+        #     'world', camera_frame, rospy.Time(0), rospy.Duration(1.0))
+
         transform = tf_buffer.lookup_transform(
-            'world', camera_frame, rospy.Time(0), rospy.Duration(1.0))
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
         pose = PoseStamped()
         pose.header = transform.header
         pose.pose.position.x = transform.transform.translation.x
@@ -373,8 +376,7 @@ def main():
         return
 
     # Get initial camera pose
-    camera_pose = tf_buffer.lookup_transform(
-        'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
+    camera_pose = get_camera_pose(tf_buffer)
 
     # Initial block detection
     publish_blocks = run_cv_first(
@@ -405,9 +407,7 @@ def main():
             continue
 
         # Update camera pose
-        # camera_pose = get_camera_pose(tf_buffer, camera_frame)
-        camera_pose = tf_buffer.lookup_transform(
-            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
+        camera_pose = get_camera_pose(tf_buffer)
 
         if not camera_pose.header.frame_id:
             rospy.logerr("Camera pose is invalid.")
