@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-# from CV.msg import Blocks, Block  # Replace 'CV' with your package name
+from CV.msg import Blocks, Block  # Replace 'CV' with your package name
 from geometry_msgs.msg import Pose, PoseStamped
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -27,7 +27,7 @@ def subscribe_once(topic_name, message_type):
     try:
         rospy.loginfo(f"Waiting for a single message on topic: {topic_name}")
         message = rospy.wait_for_message(topic_name, message_type)
-        # rospy.loginfo(f"Received message: {message}")
+        rospy.loginfo(f"Received message: {message}")
         return message
     except rospy.ROSException as e:
         rospy.logerr(f"Error while waiting for message: {e}")
@@ -43,83 +43,61 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         image_y (int): Y coordinate in the image.
         camera_calibration (dict): Camera calibration parameters.
         camera_pose (PoseStamped): Current pose of the camera.
-        tf_buffer (tf2_ros.Buffer): TF2 buffer to lookup transforms.
+        tf_buffer (tf2_ros.Buffer): TF buffer to lookup transforms.
 
     Returns:
         (float, float, float): Real-world coordinates (x, y, z) in the world frame.
     """
+    # Extract camera intrinsic parameters
+    fx = camera_calibration['fx']
+    fy = camera_calibration['fy']
+    cx = camera_calibration['cx']
+    cy = camera_calibration['cy']
+
+    # Assume a constant depth if not provided
+    depth = camera_calibration.get('depth', 1.0)
+
+    # Convert pixel to normalized camera coordinates
+    x_norm = (image_x - cx) / fx
+    y_norm = (image_y - cy) / fy
+
+    # Point in camera frame (assuming Z = depth)
+    point_camera = np.array([x_norm * depth, y_norm * depth, depth, 1.0])
+
+    # Convert camera_pose to a transformation matrix
+    quat = [
+        camera_pose.pose.orientation.x,
+        camera_pose.pose.orientation.y,
+        camera_pose.pose.orientation.z,
+        camera_pose.pose.orientation.w
+    ]
+    translation = [
+        camera_pose.pose.position.x,
+        camera_pose.pose.position.y,
+        camera_pose.pose.position.z
+    ]
+    tf_listener = tf.TransformListener()
+
     try:
-        # Extract camera intrinsic parameters
-        fx = camera_calibration['fx']
-        fy = camera_calibration['fy']
-        cx = camera_calibration['cx']
-        cy = camera_calibration['cy']
+        # Wait for the transform to be available
+        tf_listener.waitForTransform(
+            "world", camera_pose.header.frame_id, rospy.Time(0), rospy.Duration(1.0))
+        # Get the transformation matrix from camera frame to world frame
+        (trans, rot) = tf_listener.lookupTransform(
+            "world", camera_pose.header.frame_id, rospy.Time(0))
+        # Create transformation matrix
+        rotation_matrix = tf.transformations.quaternion_matrix(rot)
+        translation_matrix = tf.transformations.translation_matrix(trans)
+        transform_matrix = np.dot(translation_matrix, rotation_matrix)
 
-        # Obtain depth from camera_pose or another reliable source
-        # Here, we assume that depth is part of camera_pose's position.z
-        depth = camera_pose.pose.position.z
-        if depth <= 0:
-            rospy.logerr(
-                "Invalid depth value: {}. Depth must be positive.".format(depth))
-            return None
-
-        # Convert pixel to normalized camera coordinates
-        x_norm = (image_x - cx) / fx
-        y_norm = (image_y - cy) / fy
-
-        # Point in camera frame (assuming Z = depth)
-        point_camera = np.array(
-            [x_norm * depth, y_norm * depth, depth, 1.0]).reshape(4, 1)
-
-        # Convert PoseStamped to transformation matrix
-        # First, get the transform from camera frame to world frame
-        transform = tf_buffer.lookup_transform(
-            "world",
-            camera_pose.header.frame_id,
-            rospy.Time(0),
-            rospy.Duration(1.0)
-        )
-
-        # Extract translation and rotation
-        translation = transform.transform.translation
-        rotation = transform.transform.rotation
-
-        # Create transformation matrices
-        rot_matrix = quaternion_matrix([
-            rotation.x,
-            rotation.y,
-            rotation.z,
-            rotation.w
-        ])  # 4x4 matrix
-        trans_matrix = translation_matrix([
-            translation.x,
-            translation.y,
-            translation.z
-        ])  # 4x4 matrix
-
-        # Combine rotation and translation to form the full transformation matrix
-        transform_matrix = np.dot(trans_matrix, rot_matrix)  # 4x4 matrix
-
-        # Transform the point from camera frame to world frame
-        point_world_homogeneous = np.dot(transform_matrix, point_camera)
-        real_x, real_y, real_z, _ = point_world_homogeneous.flatten()
-
+        # Transform the point to world frame
+        point_world = np.dot(transform_matrix, point_camera)
+        real_x, real_y, real_z = point_world[:3]
         return real_x, real_y, real_z
-
-    except tf2_ros.LookupException as e:
-        rospy.logerr("TF2 LookupException: {}".format(e))
-    except tf2_ros.ExtrapolationException as e:
-        rospy.logerr("TF2 ExtrapolationException: {}".format(e))
-    except tf2_ros.ConnectivityException as e:
-        rospy.logerr("TF2 ConnectivityException: {}".format(e))
-    except KeyError as e:
-        rospy.logerr("Camera calibration parameter missing: {}".format(e))
-    except Exception as e:
-        rospy.logerr(
-            "Unexpected error in get_real_world_coordinates: {}".format(e))
-
-    # Return None if any exception occurs
-    return None
+    except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+        rospy.logerr(f"TF transformation error: {e}")
+        # Fallback to camera frame if transformation fails
+        return x_norm * depth, y_norm * depth, depth
 
 
 def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, camera_pose, tf_buffer):
@@ -171,28 +149,20 @@ def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, cam
         cY = int(M["m01"] / M["m00"])
 
         # Get real-world coordinates
-        print(f"identified camera coordinates: {cX}, {cY}")
         real_x, real_y, real_z = get_real_world_coordinates(
             cX, cY, camera_calibration, camera_pose, tf_buffer)
-        print(f"real world coordinates: {real_x}, {real_y}, {real_z}")
+
         # Create Block message
-        block = {
-            "pose": {
-                "position": {
-                    "x": real_x,
-                    "y": real_y,
-                    "z": real_z
-                },
-                "orientation": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0,
-                    "w": 1  # Neutral orientation
-                }
-            },
-            "classification": "block.stl",  # Placeholder classification
-            "confidence": 100.0  # Initial confidence
-        }
+        block = Block()
+        block.pose.position.x = real_x
+        block.pose.position.y = real_y
+        block.pose.position.z = real_z
+        block.pose.orientation.x = 0
+        block.pose.orientation.y = 0
+        block.pose.orientation.z = 0
+        block.pose.orientation.w = 1  # Neutral orientation
+        block.classification = "block.stl"  # Placeholder classification
+        block.confidence = 100.0  # Initial confidence
 
         detected_blocks.append(block)
 
@@ -250,59 +220,46 @@ def run_cv(blocks_image_msg, background_image_msg, previous_blocks, camera_calib
         cY = int(M["m01"] / M["m00"])
 
         # Get real-world coordinates
-        print(f"identified camera coordinates: {cX}, {cY}")
         real_x, real_y, real_z = get_real_world_coordinates(
             cX, cY, camera_calibration, camera_pose, tf_buffer)
-        print(f"real world coordinates: {real_x}, {real_y}, {real_z}")
+
         # Attempt to match with previous blocks
         matched = False
         for prev_block in previous_blocks:
-            distance = np.sqrt((real_x - prev_block['pose']['position']['x'])**2 +
-                               (real_y - prev_block['pose']['position']['y'])**2 +
-                               (real_z - prev_block['pose']['position']['z'])**2)
+            distance = np.sqrt((real_x - prev_block.pose.position.x)**2 +
+                               (real_y - prev_block.pose.position.y)**2 +
+                               (real_z - prev_block.pose.position.z)**2)
             if distance < 0.05:  # Threshold for matching (meters)
                 matched = True
                 # Update confidence
-                new_confidence = min(prev_block['confidence'] + 5, 100.0)
-                prev_block['confidence'] = new_confidence
+                new_confidence = min(prev_block.confidence + 5, 100.0)
+                prev_block.confidence = new_confidence
                 # Update position
-                # prev_block.pose.position.x = real_x
-                # prev_block.pose.position.y = real_y
-                # prev_block.pose.position.z = real_z
-                prev_block['pose']['position']['x'] = real_x
-                prev_block['pose']['position']['y'] = real_y
-                prev_block['pose']['position']['z'] = real_z
+                prev_block.pose.position.x = real_x
+                prev_block.pose.position.y = real_y
+                prev_block.pose.position.z = real_z
                 current_detected.append(prev_block)
                 break
 
         if not matched:
             # New block detected
-
-            block = {
-                "pose": {
-                    "position": {
-                        "x": real_x,
-                        "y": real_y,
-                        "z": real_z
-                    },
-                    "orientation": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0,
-                        "w": 1  # Neutral orientation
-                    }
-                },
-                "classification": "block.stl",  # Placeholder classification
-                "confidence": 100.0  # Initial confidence
-            }
-            # Initial confidence for new block
+            block = Block()
+            block.pose.position.x = real_x
+            block.pose.position.y = real_y
+            block.pose.position.z = real_z
+            block.pose.orientation.x = 0
+            block.pose.orientation.y = 0
+            block.pose.orientation.z = 0
+            block.pose.orientation.w = 1
+            block.classification = "block.stl"  # Placeholder classification
+            block.confidence = 50.0  # Initial confidence for new block
             current_detected.append(block)
 
     # Optionally, decrease confidence for blocks not detected in this frame
     for prev_block in previous_blocks:
         if prev_block not in current_detected:
-            prev_block['confidence'] -= 10
-            if prev_block['confidence'] > 0:
+            prev_block.confidence -= 10
+            if prev_block.confidence > 0:
                 current_detected.append(prev_block)
 
     rospy.loginfo(f"Updated {len(current_detected)} blocks in real-time run.")
@@ -349,7 +306,7 @@ def main():
     }
 
     rospy.init_node('blocks_publisher', anonymous=True)
-    # pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
+    pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
 
     bridge = CvBridge()
     publish_blocks = []
@@ -373,8 +330,10 @@ def main():
         return
 
     # Get initial camera pose
-    camera_pose = tf_buffer.lookup_transform(
-        'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
+    camera_pose = get_camera_pose(tf_buffer, camera_frame)
+    if not camera_pose.header.frame_id:
+        rospy.logerr("Camera pose is invalid. Exiting.")
+        return
 
     # Initial block detection
     publish_blocks = run_cv_first(
@@ -384,16 +343,15 @@ def main():
 
     while not rospy.is_shutdown():
         # Create the Blocks message
-        blocks_msg = {}
-        blocks_msg['blocks'] = publish_blocks
-        blocks_msg['time_updated'] = rospy.Time.now().to_nsec()
+        blocks_msg = Blocks()
+        blocks_msg.blocks = publish_blocks
+        blocks_msg.time_updated = rospy.Time.now().to_nsec()
 
         # Log the message
         rospy.loginfo(f"Publishing blocks: {blocks_msg}")
 
         # Publish the message
-        # pub.publish(blocks_msg)
-        print(f"to publish: {blocks_msg}")
+        pub.publish(blocks_msg)
 
         # Sleep for the remainder of the loop
         rate.sleep()
@@ -405,10 +363,7 @@ def main():
             continue
 
         # Update camera pose
-        # camera_pose = get_camera_pose(tf_buffer, camera_frame)
-        camera_pose = tf_buffer.lookup_transform(
-            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
-
+        camera_pose = get_camera_pose(tf_buffer, camera_frame)
         if not camera_pose.header.frame_id:
             rospy.logerr("Camera pose is invalid.")
             continue
