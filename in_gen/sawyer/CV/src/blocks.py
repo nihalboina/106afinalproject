@@ -57,9 +57,13 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         cx = camera_calibration['cx']
         cy = camera_calibration['cy']
 
-        # Convert pixel to normalized camera coordinates
-        x_norm = (image_x - cx) / fx
-        y_norm = (image_y - cy) / fy
+        # Convert pixel to normalized camera coordinate
+        width = 752
+        height = 480
+        new_x = image_x - width/2
+        new_y = height/2 - image_y
+        x_norm = (new_x - cx) / fx
+        y_norm = (new_y - cy) / fy
 
         # Direction vector in camera frame
         direction_camera = np.array([x_norm, y_norm, 1.0])
@@ -99,6 +103,7 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
             return None
 
         # Calculate the scale factor s where the ray intersects the fixed z-plane
+        print(f"direction world: {direction_world}")
         print(f"starting camera position: {camera_position}")
         s = (camera_position[2] - fixed_z) / direction_world[2]
         print(f"scale factor: {s}")
@@ -365,13 +370,16 @@ def get_camera_pose(tf_buffer):
 # given a list of blocks, draw circular markers on the image
 def draw_blocks(image, blocks):
     for block in blocks:
+        cur_idx = blocks.index(block)
         x = block['camera_coordinates']['x']
         y = block['camera_coordinates']['y']
         cv2.circle(image, (x, y), 20, (0, 0, 255), 2)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
+        text = f"Camera Position: ({block['camera_coordinates']['x']:.2f}, {block['camera_coordinates']['y']:.2f})"
+        cv2.putText(image, text, (10, 30 + 30*cur_idx), font, 0.7, (0, 0, 255), 2)
         text = f"Predicted Position: ({block['pose']['position']['x']:.2f}, {block['pose']['position']['y']:.2f}, {block['pose']['position']['z']:.2f})"
-        cv2.putText(image, text, (10, 30), font, 0.7, (0, 0, 255), 2)
+        cv2.putText(image, text, (10, 60 + 30*cur_idx), font, 0.7, (0, 0, 255), 2)
 
     return image
 
@@ -380,12 +388,11 @@ def main():
     right_hand_camera_topic = "/io/internal_camera/right_hand_camera/image_raw"
     camera_frame = "right_hand_camera_frame"  # Replace with actual camera frame ID
     camera_calibration = {
-        'fx': 640,  # Example focal length in pixels
-        'fy': 400,
-        'cx': 640,  # Example principal point
-        'cy': 400,
+        'fx': 627.794983,  # Example focal length in pixels
+        'fy': 626.838013,
+        'cx': 360.174988,  # Example principal point
+        'cy': 231.660996,
         # Assume blocks are 0.5 meters away (can be adjusted or estimated)
-        'depth': 0.760
     }
 
     rospy.init_node('blocks_publisher', anonymous=True)
@@ -458,7 +465,7 @@ def main():
 
         # Update blocks with real-time CV
         publish_blocks = run_cv(
-            blocks_image, background_image, publish_blocks, camera_calibration, camera_pose, tf_buffer)
+            blocks_image, background_image, [], camera_calibration, camera_pose, tf_buffer)
 
         image = draw_blocks(bridge.imgmsg_to_cv2(blocks_image), publish_blocks)
         cv2.imshow("Detected Blocks, press something to move forward", image)

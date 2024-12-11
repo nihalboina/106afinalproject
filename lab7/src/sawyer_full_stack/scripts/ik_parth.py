@@ -1,12 +1,37 @@
 #!/usr/bin/env python
 import rospy
+import rospkg
+import roslaunch
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest, GetPositionIKResponse
 from geometry_msgs.msg import PoseStamped
 from moveit_commander import MoveGroupCommander
+
+from paths.trajectories import LinearTrajectory, CircularTrajectory
+from paths.paths import MotionPath
+from paths.path_planner import PathPlanner
+from controllers.controllers import ( 
+    PIDJointVelocityController, 
+    FeedforwardJointVelocityController
+)
 import numpy as np
 from numpy import linalg
 import sys
 from intera_interface import gripper as robot_gripper
+
+def tuck():
+    """
+    Tuck the robot arm to the start position. Use with caution
+    """
+    if input('Would you like to tuck the arm? (y/n): ') == 'y':
+        rospack = rospkg.RosPack()
+        path = rospack.get_path('sawyer_full_stack')
+        launch_path = path + '/launch/custom_sawyer_tuck.launch'
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])
+        launch.start()
+    else:
+        print('Canceled. Not tucking the arm.')
 
 
 def main():
@@ -18,6 +43,8 @@ def main():
     
     # Set up the right gripper
     right_gripper = robot_gripper.Gripper('right_gripper')
+
+    tuck()
 
     # Calibrate the gripper (other commands won't work unless you do this first)
     print('Calibrating...')
@@ -42,10 +69,10 @@ def main():
         # Set the desired orientation for the end effector HERE
         ###group.set_position_target([0.5, 0.5, 0.0])
         # PICK
-        # should be 0.748, 0.237, -0.087
-        request.ik_request.pose_stamped.pose.position.x = -0.155
-        request.ik_request.pose_stamped.pose.position.y = 0.14916666666666667
-        request.ik_request.pose_stamped.pose.position.z = 0.5
+        # should be 0.670, 0.181, -0.081
+        request.ik_request.pose_stamped.pose.position.x = 0.67
+        request.ik_request.pose_stamped.pose.position.y = 0.181
+        request.ik_request.pose_stamped.pose.position.z = -0.081
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0
@@ -73,6 +100,11 @@ def main():
             # Execute IK if safe
             if user_input == 'y':
                 group.execute(plan[1])
+                right_gripper = robot_gripper.Gripper('right_gripper')
+                print('Closing...')
+                right_gripper.close()
+                rospy.sleep(1.0)
+
             
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
@@ -121,7 +153,7 @@ def main():
         # PLACE 0.757, 0.045, -0.149
         request.ik_request.pose_stamped.pose.position.x = 0.757
         request.ik_request.pose_stamped.pose.position.y = 0.045
-        request.ik_request.pose_stamped.pose.position.z = -0.149        
+        request.ik_request.pose_stamped.pose.position.z = -0.081      
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0
@@ -149,6 +181,11 @@ def main():
             # Execute IK if safe
             if user_input == 'y':
                 group.execute(plan[1])
+                right_gripper = robot_gripper.Gripper('right_gripper')
+                print('Closing...')
+                right_gripper.open()
+                rospy.sleep(1.0)
+
             
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
