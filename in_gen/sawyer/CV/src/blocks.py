@@ -369,7 +369,7 @@ def draw_blocks(image, blocks):
     for block in blocks:
         x = block['camera_coordinates']['x']
         y = block['camera_coordinates']['y']
-        cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
+        cv2.circle(image, (x, y), 20, (0, 0, 255), 2)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
         text = f"Predicted Position: ({block['pose']['position']['x']:.2f}, {block['pose']['position']['y']:.2f}, {block['pose']['position']['z']:.2f})"
@@ -425,6 +425,7 @@ def main():
     image = draw_blocks(bridge.imgmsg_to_cv2(blocks_image), publish_blocks)
     cv2.imshow("Detected Blocks, press something to move forward", image)
     cv2.waitKey(0)
+    cv2.imshow("Detected Blocks, press something to move forward", bridge.imgmsg_to_cv2(blocks_image))
     while not rospy.is_shutdown():
         # Create the Blocks message
         # Update camera pose
