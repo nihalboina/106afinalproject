@@ -16,21 +16,30 @@ in_exec (instruction execution)
 PID stuff to go from all instructions to executing properly
 
 
-
-Command line instructions:
+Startup instructions:
 
 Connect to sawyer
+
 source ~ee106a/sawyer_setup.bash
 
 Enable sawyer
+
 rosrun intera_interface enable_robot.py -e
 
 Start the intera action server
+
 rosrun intera_interface joint_trajectory_action_server.py
 
 Start MoveIt to enable inverse kinematics and usage of the MoveIt controller
+
 roslaunch sawyer_moveit_config sawyer_moveit.launch electric_gripper:=true
 
 Place sawyer in a good starting joint configuration
+
 roslaunch intera_examples sawyer_tuck.launch
 
+Other instructions:
+
+Get current gripper position
+
+rosrun tf tf_echo base right_gripper_tip
