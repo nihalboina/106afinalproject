@@ -43,3 +43,7 @@ Other instructions:
 Get current gripper position
 
 rosrun tf tf_echo base right_gripper_tip
+
+Or for 'Amir'
+
+rosrun tf tf_echo base stp+022312TP99620
