@@ -137,9 +137,9 @@ def setup():
         [0.034791015625, -1.318587890625, -0.103244140625, 1.436109375, 0.0623955078125, -0.099697265625, 1.5763955078125])
     move_to_position(end_effector_pose)
     # check if topic /blocks is available, if not, then wait, if so then subscribe
-    while (not is_topic_running("/blocks")):
-        rospy.loginfo("Waiting for /blocks to be running...")
-        time.sleep(1)
+    # while (not is_topic_running("/blocks")):
+    #     rospy.loginfo("Waiting for /blocks to be running...")
+    #     time.sleep(1)
 
     # rospy.Subscriber("/blocks", PoseStamped, block_callback)
 
