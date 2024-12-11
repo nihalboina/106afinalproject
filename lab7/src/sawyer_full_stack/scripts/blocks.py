@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
+import rospkg
+import roslaunch
+
 # from CV.msg import Blocks, Block  # Replace 'CV' with your package name
 from geometry_msgs.msg import Pose, PoseStamped
 from sensor_msgs.msg import Image
@@ -12,6 +15,22 @@ import tf2_ros
 import tf2_geometry_msgs
 from collections import defaultdict
 from tf.transformations import quaternion_matrix, translation_matrix
+
+
+def tuck():
+    """
+    Tuck the robot arm to the start position. Use with caution
+    """
+    if input('Would you like to tuck the arm? (y/n): ') == 'y':
+        rospack = rospkg.RosPack()
+        path = rospack.get_path('sawyer_full_stack')
+        launch_path = path + '/launch/custom_sawyer_tuck.launch'
+        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+        roslaunch.configure_logging(uuid)
+        launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])
+        launch.start()
+    else:
+        print('Canceled. Not tucking the arm.')
 
 
 def subscribe_once(topic_name, message_type):
@@ -515,6 +534,7 @@ def main():
 
 if __name__ == '__main__':
     try:
+        tuck()
         main()
     except rospy.ROSInterruptException:
         pass
