@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from CV.msg import Blocks, Block  # Replace 'CV' with your package name
+# from CV.msg import Blocks, Block  # Replace 'CV' with your package name
 from geometry_msgs.msg import Pose, PoseStamped
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -27,7 +27,7 @@ def subscribe_once(topic_name, message_type):
     try:
         rospy.loginfo(f"Waiting for a single message on topic: {topic_name}")
         message = rospy.wait_for_message(topic_name, message_type)
-        rospy.loginfo(f"Received message: {message}")
+        # rospy.loginfo(f"Received message: {message}")
         return message
     except rospy.ROSException as e:
         rospy.logerr(f"Error while waiting for message: {e}")
@@ -66,15 +66,15 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
 
     # Convert camera_pose to a transformation matrix
     quat = [
-        camera_pose.pose.orientation.x,
-        camera_pose.pose.orientation.y,
-        camera_pose.pose.orientation.z,
-        camera_pose.pose.orientation.w
+        camera_pose.transform.rotation.x,
+        camera_pose.transform.rotation.y,
+        camera_pose.transform.rotation.z,
+        camera_pose.transform.rotation.w
     ]
     translation = [
-        camera_pose.pose.position.x,
-        camera_pose.pose.position.y,
-        camera_pose.pose.position.z
+        camera_pose.transform.translation.x,
+        camera_pose.transform.translation.y,
+        camera_pose.transform.translation.z
     ]
     tf_listener = tf.TransformListener()
 
@@ -153,16 +153,24 @@ def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, cam
             cX, cY, camera_calibration, camera_pose, tf_buffer)
 
         # Create Block message
-        block = Block()
-        block.pose.position.x = real_x
-        block.pose.position.y = real_y
-        block.pose.position.z = real_z
-        block.pose.orientation.x = 0
-        block.pose.orientation.y = 0
-        block.pose.orientation.z = 0
-        block.pose.orientation.w = 1  # Neutral orientation
-        block.classification = "block.stl"  # Placeholder classification
-        block.confidence = 100.0  # Initial confidence
+        block = {
+                "pose": {
+                    "position": {
+                        "x": real_x,
+                        "y": real_y,
+                        "z": real_z
+                    },
+                    "orientation": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "w": 1  # Neutral orientation
+                    }
+                },
+                "classification": "block.stl",  # Placeholder classification
+                "confidence": 100.0  # Initial confidence
+            }
+
 
         detected_blocks.append(block)
 
@@ -226,40 +234,52 @@ def run_cv(blocks_image_msg, background_image_msg, previous_blocks, camera_calib
         # Attempt to match with previous blocks
         matched = False
         for prev_block in previous_blocks:
-            distance = np.sqrt((real_x - prev_block.pose.position.x)**2 +
-                               (real_y - prev_block.pose.position.y)**2 +
-                               (real_z - prev_block.pose.position.z)**2)
+            distance = np.sqrt((real_x - prev_block['pose']['position']['x'])**2 +
+                               (real_y - prev_block['pose']['position']['y'])**2 +
+                               (real_z - prev_block['pose']['position']['z'])**2)
             if distance < 0.05:  # Threshold for matching (meters)
                 matched = True
                 # Update confidence
-                new_confidence = min(prev_block.confidence + 5, 100.0)
-                prev_block.confidence = new_confidence
+                new_confidence = min(prev_block['confidence'] + 5, 100.0)
+                prev_block['confidence'] = new_confidence
                 # Update position
-                prev_block.pose.position.x = real_x
-                prev_block.pose.position.y = real_y
-                prev_block.pose.position.z = real_z
+                # prev_block.pose.position.x = real_x
+                # prev_block.pose.position.y = real_y
+                # prev_block.pose.position.z = real_z
+                prev_block['pose']['position']['x'] = real_x
+                prev_block['pose']['position']['y'] = real_y
+                prev_block['pose']['position']['z'] = real_z
                 current_detected.append(prev_block)
                 break
 
         if not matched:
             # New block detected
-            block = Block()
-            block.pose.position.x = real_x
-            block.pose.position.y = real_y
-            block.pose.position.z = real_z
-            block.pose.orientation.x = 0
-            block.pose.orientation.y = 0
-            block.pose.orientation.z = 0
-            block.pose.orientation.w = 1
-            block.classification = "block.stl"  # Placeholder classification
-            block.confidence = 50.0  # Initial confidence for new block
+
+            block = {
+                "pose": {
+                    "position": {
+                        "x": real_x,
+                        "y": real_y,
+                        "z": real_z
+                    },
+                    "orientation": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0,
+                        "w": 1  # Neutral orientation
+                    }
+                },
+                "classification": "block.stl",  # Placeholder classification
+                "confidence": 100.0  # Initial confidence
+            }
+              # Initial confidence for new block
             current_detected.append(block)
 
     # Optionally, decrease confidence for blocks not detected in this frame
     for prev_block in previous_blocks:
         if prev_block not in current_detected:
-            prev_block.confidence -= 10
-            if prev_block.confidence > 0:
+            prev_block['confidence'] -= 10
+            if prev_block['confidence'] > 0:
                 current_detected.append(prev_block)
 
     rospy.loginfo(f"Updated {len(current_detected)} blocks in real-time run.")
@@ -306,7 +326,7 @@ def main():
     }
 
     rospy.init_node('blocks_publisher', anonymous=True)
-    pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
+    # pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
 
     bridge = CvBridge()
     publish_blocks = []
@@ -330,10 +350,7 @@ def main():
         return
 
     # Get initial camera pose
-    camera_pose = get_camera_pose(tf_buffer, camera_frame)
-    if not camera_pose.header.frame_id:
-        rospy.logerr("Camera pose is invalid. Exiting.")
-        return
+    camera_pose = tf_buffer.lookup_transform('base','right_hand_camera',rospy.Time(0), rospy.Duration(0))
 
     # Initial block detection
     publish_blocks = run_cv_first(
@@ -343,15 +360,16 @@ def main():
 
     while not rospy.is_shutdown():
         # Create the Blocks message
-        blocks_msg = Blocks()
-        blocks_msg.blocks = publish_blocks
-        blocks_msg.time_updated = rospy.Time.now().to_nsec()
+        blocks_msg = {}
+        blocks_msg['blocks'] = publish_blocks
+        blocks_msg['time_updated'] = rospy.Time.now().to_nsec()
 
         # Log the message
         rospy.loginfo(f"Publishing blocks: {blocks_msg}")
 
         # Publish the message
-        pub.publish(blocks_msg)
+        # pub.publish(blocks_msg)
+        print(f"to publish: {blocks_msg}")
 
         # Sleep for the remainder of the loop
         rate.sleep()
@@ -363,7 +381,9 @@ def main():
             continue
 
         # Update camera pose
-        camera_pose = get_camera_pose(tf_buffer, camera_frame)
+        # camera_pose = get_camera_pose(tf_buffer, camera_frame)
+        camera_pose = tf_buffer.lookup_transform('base','right_hand_camera',rospy.Time(0), rospy.Duration(0))
+
         if not camera_pose.header.frame_id:
             rospy.logerr("Camera pose is invalid.")
             continue

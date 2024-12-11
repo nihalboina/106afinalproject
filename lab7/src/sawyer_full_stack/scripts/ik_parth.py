@@ -32,7 +32,8 @@ def main():
         request.ik_request.group_name = "right_arm"
 
         # If a Sawyer does not have a gripper, replace '_gripper_tip' with '_wrist' instead
-        link = "right_gripper_tip"
+        #Switch when needed link = "right_gripper_tip"
+        link = "stp_022312TP99620_tip_1"
 
         request.ik_request.ik_link_name = link
         # request.ik_request.attempts = 20
@@ -40,11 +41,11 @@ def main():
         
         # Set the desired orientation for the end effector HERE
         ###group.set_position_target([0.5, 0.5, 0.0])
-      
         # PICK
-        request.ik_request.pose_stamped.pose.position.x = 0.619
-        request.ik_request.pose_stamped.pose.position.y = 0.266
-        request.ik_request.pose_stamped.pose.position.z = -0.147  
+        # should be 0.748, 0.237, -0.087
+        request.ik_request.pose_stamped.pose.position.x = -0.155
+        request.ik_request.pose_stamped.pose.position.y = 0.14916666666666667
+        request.ik_request.pose_stamped.pose.position.z = 0.5
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0

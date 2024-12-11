@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   stl
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,8 +55,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   Message1.msg
-#   Message2.msg
+#   Block.msg
+#   Blocks.msg
 # )
 
 ## Generate services in the 'srv' folder
@@ -110,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES CV
-#  CATKIN_DEPENDS intera_inteface intera_sdk opencv python3-numpy rospy sensor_msgs std_msgs stl
+#  CATKIN_DEPENDS intera_inteface intera_sdk opencv python3-numpy rospy sensor_msgs std_msgs stl message_runtime
 #  DEPENDS system_lib
 )
 
