@@ -11,6 +11,7 @@ import tf
 import tf2_ros
 import tf2_geometry_msgs
 from collections import defaultdict
+from tf.transformations import quaternion_matrix, translation_matrix
 
 
 def subscribe_once(topic_name, message_type):
@@ -197,6 +198,15 @@ def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, cam
         detected_blocks.append(block)
 
     rospy.loginfo(f"Detected {len(detected_blocks)} blocks in initial run.")
+
+    # Save picture of frame with detected blocks
+    detected_blocks_image = blocks_image.copy()
+    for cnt in contours:
+        if cv2.contourArea(cnt) < 500:
+            continue
+        cv2.drawContours(detected_blocks_image, [cnt], -1, (255, 0, 0), 3)
+    cv2.imwrite("detected_blocks_image.jpg", detected_blocks_image)
+
     return detected_blocks
 
 
