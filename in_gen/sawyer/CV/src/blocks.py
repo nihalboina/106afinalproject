@@ -35,9 +35,9 @@ def subscribe_once(topic_name, message_type):
         return None
 
 
-def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose, tf_buffer):
+def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose, tf_buffer, fixed_z=-0.09):
     """
-    Convert image pixel coordinates to real-world coordinates considering the robot's pose.
+    Convert image pixel coordinates to real-world coordinates with a fixed z-coordinate.
 
     Args:
         image_x (int): X coordinate in the image.
@@ -45,6 +45,7 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         camera_calibration (dict): Camera calibration parameters.
         camera_pose (PoseStamped): Current pose of the camera.
         tf_buffer (tf2_ros.Buffer): TF2 buffer to lookup transforms.
+        fixed_z (float): Fixed z-coordinate in the world frame.
 
     Returns:
         (float, float, float): Real-world coordinates (x, y, z) in the world frame.
@@ -56,27 +57,20 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         cx = camera_calibration['cx']
         cy = camera_calibration['cy']
 
-        # Obtain depth from camera_pose or another reliable source
-        # Here, we assume that depth is part of camera_pose's position.z
-        depth = camera_pose.pose.position.z
-        if depth <= 0:
-            rospy.logerr(
-                "Invalid depth value: {}. Depth must be positive.".format(depth))
-            return None
-
         # Convert pixel to normalized camera coordinates
         x_norm = (image_x - cx) / fx
         y_norm = (image_y - cy) / fy
 
-        # Point in camera frame (assuming Z = depth)
-        point_camera = np.array(
-            [x_norm * depth, y_norm * depth, depth, 1.0]).reshape(4, 1)
+        # Direction vector in camera frame
+        direction_camera = np.array([x_norm, y_norm, 1.0])
 
-        # Convert PoseStamped to transformation matrix
-        # First, get the transform from camera frame to world frame
+        # Normalize the direction vector
+        direction_camera /= np.linalg.norm(direction_camera)
+
+        # Obtain the transformation from camera frame to world frame
         transform = tf_buffer.lookup_transform(
-            camera_pose.header.frame_id,
             "world",
+            camera_pose.header.frame_id,
             rospy.Time(0),
             rospy.Duration(1.0)
         )
@@ -85,25 +79,36 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
         translation = transform.transform.translation
         rotation = transform.transform.rotation
 
-        # Create transformation matrices
+        # Convert quaternion to rotation matrix
         rot_matrix = quaternion_matrix([
             rotation.x,
             rotation.y,
             rotation.z,
             rotation.w
-        ])  # 4x4 matrix
-        trans_matrix = translation_matrix([
+        ])[:3, :3]  # 3x3 rotation matrix
+
+        # Camera position in world frame
+        camera_position = np.array([
             translation.x,
             translation.y,
             translation.z
-        ])  # 4x4 matrix
+        ])
 
-        # Combine rotation and translation to form the full transformation matrix
-        transform_matrix = np.dot(trans_matrix, rot_matrix)  # 4x4 matrix
+        # Direction vector in world frame
+        direction_world = rot_matrix.dot(direction_camera)
 
-        # Transform the point from camera frame to world frame
-        point_world_homogeneous = np.dot(transform_matrix, point_camera)
-        real_x, real_y, real_z, _ = point_world_homogeneous.flatten()
+        # Avoid division by zero
+        if direction_world[2] == 0:
+            rospy.logerr("Direction vector is parallel to the fixed z-plane.")
+            return None
+
+        # Calculate the scale factor s where the ray intersects the fixed z-plane
+        s = (fixed_z - camera_position[2]) / direction_world[2]
+
+        # Calculate real-world coordinates
+        real_x = camera_position[0] + s * direction_world[0]
+        real_y = camera_position[1] + s * direction_world[1]
+        real_z = fixed_z  # As specified
 
         return real_x, real_y, real_z
 
@@ -178,7 +183,12 @@ def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, cam
         print(f"real world coordinates: {real_x}, {real_y}, {real_z}")
         # Create Block message
         block = {
+            "camera_coordinates": {
+                "x": cX,
+                "y": cY
+            },
             "pose": {
+
                 "position": {
                     "x": real_x,
                     "y": real_y,
@@ -289,6 +299,10 @@ def run_cv(blocks_image_msg, background_image_msg, previous_blocks, camera_calib
             # New block detected
 
             block = {
+                "camera_coordinates": {
+                    "x": cX,
+                    "y": cY
+                },
                 "pose": {
                     "position": {
                         "x": real_x,
@@ -336,17 +350,32 @@ def get_camera_pose(tf_buffer):
         #     'world', camera_frame, rospy.Time(0), rospy.Duration(1.0))
 
         transform = tf_buffer.lookup_transform(
-            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(0))
+            'base', 'right_hand', rospy.Time(0), rospy.Duration(0))
         pose = PoseStamped()
         pose.header = transform.header
         pose.pose.position.x = transform.transform.translation.x
         pose.pose.position.y = transform.transform.translation.y
         pose.pose.position.z = transform.transform.translation.z
         pose.pose.orientation = transform.transform.rotation
+        print(f"camera pose: {pose}")
         return pose
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         rospy.logerr(f"Failed to get camera pose: {e}")
         return PoseStamped()  # Return an empty PoseStamped
+
+
+# given a list of blocks, draw circular markers on the image
+def draw_blocks(image, blocks):
+    for block in blocks:
+        x = block['camera_coordinates']['x']
+        y = block['camera_coordinates']['y']
+        cv2.circle(image, (x, y), 5, (0, 0, 255), -1)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = f"Predicted Position: ({block['pose']['position']['x']:.2f}, {block['pose']['position']['y']:.2f}, {block['pose']['position']['z']:.2f})"
+        cv2.putText(image, text, (10, 30), font, 0.7, (0, 0, 255), 2)
+
+    return image
 
 
 def main():
@@ -393,9 +422,14 @@ def main():
         background_image, blocks_image, camera_calibration, camera_pose, tf_buffer)
 
     rate = rospy.Rate(1)  # 1 Hz
-
+    image = draw_blocks(bridge.imgmsg_to_cv2(blocks_image), publish_blocks)
+    cv2.imshow("Detected Blocks, press something to move forward", image)
+    cv2.waitKey(0)
     while not rospy.is_shutdown():
         # Create the Blocks message
+        # Update camera pose
+        camera_pose = get_camera_pose(tf_buffer)
+
         blocks_msg = {}
         blocks_msg['blocks'] = publish_blocks
         blocks_msg['time_updated'] = rospy.Time.now().to_nsec()
@@ -426,6 +460,10 @@ def main():
         # Update blocks with real-time CV
         publish_blocks = run_cv(
             blocks_image, background_image, publish_blocks, camera_calibration, camera_pose, tf_buffer)
+
+        image = draw_blocks(bridge.imgmsg_to_cv2(blocks_image), publish_blocks)
+        cv2.imshow("Detected Blocks, press something to move forward", image)
+        cv2.waitKey(0)
 
 
 if __name__ == '__main__':
