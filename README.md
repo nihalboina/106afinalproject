@@ -46,4 +46,4 @@ rosrun tf tf_echo base right_gripper_tip
 
 Or for 'Amir'
 
-rosrun tf tf_echo base stp+022312TP99620
+rosrun tf tf_echo base stp_022312TP99620
