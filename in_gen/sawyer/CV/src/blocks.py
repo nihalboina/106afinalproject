@@ -69,11 +69,7 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
 
         # Obtain the transformation from camera frame to world frame
         transform = tf_buffer.lookup_transform(
-            "world",
-            camera_pose.header.frame_id,
-            rospy.Time(0),
-            rospy.Duration(1.0)
-        )
+            'base', 'right_hand', rospy.Time(0), rospy.Duration(1.0))
 
         # Extract translation and rotation
         translation = transform.transform.translation
@@ -103,11 +99,13 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
             return None
 
         # Calculate the scale factor s where the ray intersects the fixed z-plane
-        s = (fixed_z - camera_position[2]) / direction_world[2]
-
+        print(f"starting camera position: {camera_position}")
+        s = (camera_position[2] - fixed_z) / direction_world[2]
+        print(f"scale factor: {s}")
         # Calculate real-world coordinates
         real_x = camera_position[0] + s * direction_world[0]
         real_y = camera_position[1] + s * direction_world[1]
+        print(f"real world x, y: {(real_x, real_y)}")
         real_z = fixed_z  # As specified
 
         return real_x, real_y, real_z
@@ -350,7 +348,7 @@ def get_camera_pose(tf_buffer):
         #     'world', camera_frame, rospy.Time(0), rospy.Duration(1.0))
 
         transform = tf_buffer.lookup_transform(
-            'base', 'right_hand', rospy.Time(0), rospy.Duration(0))
+            'base', 'right_hand', rospy.Time(0), rospy.Duration(1.0))
         pose = PoseStamped()
         pose.header = transform.header
         pose.pose.position.x = transform.transform.translation.x
