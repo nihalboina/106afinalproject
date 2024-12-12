@@ -22,7 +22,7 @@ class CameraTransform:
         # self.camera_position = np.array([0.681, 0.121, 0.426])
 
         # Known Z coordinate of the object plane
-        self.object_z = -0.09
+        self.object_z = -0.1
 
         # Calculate the transformation from camera to base
         # Since we're given position but not orientation, assuming camera looks straight down
@@ -70,7 +70,7 @@ class CameraTransform:
 
         # Calculate ray from camera, accounting for image coordinate system
         x_norm = (u_undist - cx) / fx  # Right is positive
-        y_norm = -(v_undist - cy) / fy  # Up is positive in camera frame
+        y_norm = (v_undist - cy) / fy  # Up is positive in camera frame
 
         # Step 3: Calculate the scaling factor
         # Since we know the Z coordinate of the object plane and camera position
