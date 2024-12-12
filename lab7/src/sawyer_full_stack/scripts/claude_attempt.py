@@ -3,6 +3,7 @@ import cv2
 import tf2_ros
 import rospy
 import tf2_geometry_msgs
+import geometry_msgs.msg
 
 
 class CameraTransform:
@@ -92,10 +93,20 @@ class CameraTransform:
         print(f"camera point: {point_cam}")
         # point_base = np.dot(self.R, point_cam) + camera_position
 
-        point_in_base = tf2_geometry_msgs.do_transform_point(
-            point_cam, transform)
+        point_cam_ps = geometry_msgs.msg.PointStamped()
+        point_cam_ps.header.stamp = rospy.Time.now()
+        # Ensure this matches your TF frame
+        point_cam_ps.header.frame_id = 'right_hand_camera'
+        point_cam_ps.point.x = x_cam
+        point_cam_ps.point.y = y_cam
+        point_cam_ps.point.z = z_cam
 
-        return tuple(point_in_base)
+        # Step 5: Transform to base coordinates
+        point_base = self.tf_buffer.transform(
+            point_cam_ps, 'base', rospy.Duration(1.0))
+
+        # Return the transformed point as a tuple
+        return (point_base.point.x, point_base.point.y, point_base.point.z)
 
 
 def main():
