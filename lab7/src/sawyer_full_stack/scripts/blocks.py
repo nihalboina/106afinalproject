@@ -130,7 +130,7 @@ def get_real_world_coordinates(image_x, image_y, camera_calibration, camera_pose
 
         # Obtain the transformation from camera frame to world frame
         transform = tf_buffer.lookup_transform(
-            'base', 'right_hand', rospy.Time(0), rospy.Duration(1.0))
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
 
         # Extract translation and rotation
         translation = transform.transform.translation
@@ -214,6 +214,7 @@ def run_cv_first(background_image_msg, blocks_image_msg, camera_calibration, cam
 
     # Background subtraction
     diff = cv2.absdiff(blocks_image, background_image)
+    cv2.imshow("diff",diff)
     _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
 
     # Morphological operations to remove noise
@@ -410,7 +411,7 @@ def get_camera_pose(tf_buffer):
         #     'world', camera_frame, rospy.Time(0), rospy.Duration(1.0))
 
         transform = tf_buffer.lookup_transform(
-            'base', 'right_hand', rospy.Time(0), rospy.Duration(1.0))
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
         pose = PoseStamped()
         pose.header = transform.header
         pose.pose.position.x = transform.transform.translation.x
@@ -471,19 +472,27 @@ def main():
     if background_image is None:
         rospy.logerr("Failed to get background image. Exiting.")
         return
-
+    
+    cv2.imshow("Background", bridge.imgmsg_to_cv2(background_image))
+    cv2.waitKey(0)
     input("Press Enter once blocks are placed...")
     blocks_image = subscribe_once(right_hand_camera_topic, Image)
     if blocks_image is None:
         rospy.logerr("Failed to get blocks image. Exiting.")
         return
+    
+    cv2.imshow("Background", bridge.imgmsg_to_cv2(background_image))
+    cv2.imshow("Actual", bridge.imgmsg_to_cv2(blocks_image))
 
     # Get initial camera pose
     camera_pose = get_camera_pose(tf_buffer)
 
     # Initial block detection
-    publish_blocks = run_cv_first(
-        background_image, blocks_image, camera_calibration, camera_pose, tf_buffer)
+    # publish_blocks = run_cv_first(
+    #     background_image, blocks_image, camera_calibration, camera_pose, tf_buffer)
+
+    publish_blocks = run_cv(
+            blocks_image, background_image, [], camera_calibration, camera_pose, tf_buffer)
 
     rate = rospy.Rate(1)  # 1 Hz
     image = draw_blocks(bridge.imgmsg_to_cv2(blocks_image), publish_blocks)
@@ -535,6 +544,7 @@ def main():
 if __name__ == '__main__':
     try:
         tuck()
+        rospy.sleep(5.0)
         main()
     except rospy.ROSInterruptException:
         pass

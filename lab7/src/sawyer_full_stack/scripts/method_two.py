@@ -82,7 +82,7 @@ def get_real_world_coordinates(image_x, image_y, fixed_z=-0.108):
 # Example usage with the known correspondence
 # Known image point (450, 18) maps to real-world point (0.754, 0.018, -0.108)
 # Use this to validate the scaling
-real_world = get_real_world_coordinates(450, 18)
+real_world = get_real_world_coordinates(468, 249)
 print("Computed Real-World Coordinates:", real_world)
 
 # You can add more points and perform validation or calibration as needed

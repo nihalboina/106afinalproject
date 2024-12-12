@@ -22,7 +22,7 @@ try:
 except:
     pass
 
-class cdMotionPath:
+class MotionPath:
     def __init__(self, limb, kin, ik_solver, trajectory):
         """
         Parameters
