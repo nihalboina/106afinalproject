@@ -55,18 +55,7 @@ def tuck():
 
 def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     """
-    Returns an appropriate robot trajectory for the specified task.  You should 
-    be implementing the path functions in paths.py and call them here
-    
-    Parameters
-    ----------
-    task : string
-        name of the task.  Options: line, circle, square
-    tag_pos : 3x' :obj:`numpy.ndarray`
-        
-    Returns
-    -------
-    :obj:`moveit_msgs.msg.RobotTrajectory`
+    Returns an appropriate robot trajectory for the specified task.
     """
     num_way = args.num_way
     task = args.task
@@ -83,12 +72,12 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     print("Current Position:", current_position)
 
     if task == 'line':
-        target_pos = tag_pos[0]
-        # REMOVING THIS SO WE GO DIRECTLY TO POINT target_pos[2] += 0.4 #linear path moves to a Z position above AR Tag.
+        # Convert tag_pos to numpy array and only use position components
+        target_pos = np.array(tag_pos[:3])
         print("TARGET POSITION:", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
-    elif task == 'circle':
-        target_pos = tag_pos[0]
+    elif task == 'circle': # WE PROBABLY DONT USE THIS
+        target_pos = np.array(tag_pos[:3])
         target_pos[2] += 0.5
         print("TARGET POSITION:", target_pos)
         trajectory = CircularTrajectory(center_position=target_pos, radius=0.1, total_time=15)
