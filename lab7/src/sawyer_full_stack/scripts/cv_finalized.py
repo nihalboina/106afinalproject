@@ -173,10 +173,11 @@ def run_cv(image_msg, camera_transform, max_objects=2):
             real_x, real_y, real_z = camera_transform.pixel_to_base(
                 cX, cY)
             print(f"Real base coordinates: {real_x}, {real_y}, {real_z}")
-            print(f"Base area: area")
+            print(f"Base area: {area}")
 
             # Create Block message
             block = {
+                "area": area,
                 "camera_coordinates": {
                     "x": cX,
                     "y": cY
@@ -211,10 +212,11 @@ def run_cv(image_msg, camera_transform, max_objects=2):
 
     # Save picture of frame with detected blocks
     detected_blocks_image = blocks_image.copy()
-    for (cX, cY) in detected_centroids:
+    for (cX, cY, area) in detected_centroids:
         cv2.circle(detected_blocks_image, (cX, cY), 20, (255, 0, 0), 3)
         cv2.putText(detected_blocks_image, f"({cX}, {cY})", (cX + 10, cY),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
     cv2.imwrite("detected_blocks_image.jpg", detected_blocks_image)
 
     return detected_blocks
@@ -257,11 +259,15 @@ def draw_blocks(image, blocks):
         cv2.circle(image, (x, y), 20, (0, 0, 255), 2)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        text = f"Camera Position: ({block['camera_coordinates']['x']}, {block['camera_coordinates']['y']})"
-        cv2.putText(image, text, (10, 30 + 30 * cur_idx),
+        text = f"cam: ({block['camera_coordinates']['x']}, {block['camera_coordinates']['y']})"
+        cv2.putText(image, text, (x, y + 30),
                     font, 0.7, (0, 0, 255), 2)
-        text = f"Predicted Position: ({block['pose']['position']['x']:.2f}, {block['pose']['position']['y']:.2f}, {block['pose']['position']['z']:.2f})"
-        cv2.putText(image, text, (10, 60 + 30 * cur_idx),
+        text = f"base: ({block['pose']['position']['x']:.2f}, {block['pose']['position']['y']:.2f}, {block['pose']['position']['z']:.2f})"
+        cv2.putText(image, text, (x, y + 60),
+                    font, 0.7, (0, 0, 255), 2)
+        
+        text = f"area: {block['area']}"
+        cv2.putText(image, text, (x, y + 90),
                     font, 0.7, (0, 0, 255), 2)
 
     return image
@@ -285,10 +291,10 @@ def main():
     camera_transform = CameraTransform()
 
     # Get initial camera pose
-    camera_pose = get_camera_pose(tf_buffer)
-    if not camera_pose.header.frame_id:
-        rospy.logerr("Initial camera pose is invalid. Exiting.")
-        return
+    # camera_pose = get_camera_pose(tf_buffer)
+    # if not camera_pose.header.frame_id:
+    #     rospy.logerr("Initial camera pose is invalid. Exiting.")
+    #     return
 
     rate = rospy.Rate(1)  # 1 Hz
 
@@ -308,7 +314,7 @@ def main():
 
         # Detect objects and get real-base coordinates
         publish_blocks = run_cv(
-            image_msg, camera_transform, max_objects=2)
+            image_msg, camera_transform, max_objects=69)
 
         # Draw detected blocks on the image
         try:
