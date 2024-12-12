@@ -32,6 +32,11 @@ class CameraTransform:
             [0.0, 0.0, 1.0]
         ])
 
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        # You might need to add a short sleep here to allow the listener to fill the buffer
+        rospy.sleep(1.0)
+
     def pixel_to_base(self, u, v):
         """
         Convert pixel coordinates (u,v) to base coordinates (x,y,z)
@@ -43,9 +48,7 @@ class CameraTransform:
         Returns:
             tuple: (x, y, z) coordinates in base frame
         """
-        tf_buffer = tf2_ros.Buffer()
-
-        transform = tf_buffer.lookup_transform(
+        transform = self.tf_buffer.lookup_transform(
             'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
 
         camera_position = np.array([transform.transform.translation.x,
@@ -86,6 +89,7 @@ class CameraTransform:
 
         # Step 5: Transform to base coordinates
         point_cam = np.array([x_cam, y_cam, z_cam])
+        print(f"camera point: {point_cam}")
         # point_base = np.dot(self.R, point_cam) + camera_position
 
         point_in_base = tf2_geometry_msgs.do_transform_point(
