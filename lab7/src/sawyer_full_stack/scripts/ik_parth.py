@@ -70,9 +70,9 @@ def main():
         ###group.set_position_target([0.5, 0.5, 0.0])
         # PICK
         # should be 0.670, 0.181, -0.081
-        request.ik_request.pose_stamped.pose.position.x = 0.56
-        request.ik_request.pose_stamped.pose.position.y = 0.03
-        request.ik_request.pose_stamped.pose.position.z = -0.09
+        request.ik_request.pose_stamped.pose.position.x = 0.5329515764309306
+        request.ik_request.pose_stamped.pose.position.y = 0.2712330013762762
+        request.ik_request.pose_stamped.pose.position.z = -0.09894391417188214
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0
@@ -151,9 +151,9 @@ def main():
             print("Service call failed: %s"%e)
 
         # PLACE 0.757, 0.045, -0.149
-        request.ik_request.pose_stamped.pose.position.x = 0.757
-        request.ik_request.pose_stamped.pose.position.y = 0.045
-        request.ik_request.pose_stamped.pose.position.z = -0.081      
+        request.ik_request.pose_stamped.pose.position.x = 0.5329515764309306
+        request.ik_request.pose_stamped.pose.position.y = 0.2712330013762762
+        request.ik_request.pose_stamped.pose.position.z = -0.09894391417188214     
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0
