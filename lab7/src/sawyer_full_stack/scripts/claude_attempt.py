@@ -27,11 +27,6 @@ class CameraTransform:
         # Calculate the transformation from camera to base
         # Since we're given position but not orientation, assuming camera looks straight down
         # You may need to adjust this based on actual camera orientation
-        self.R = np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0]
-        ])
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -81,7 +76,7 @@ class CameraTransform:
         # Since we know the Z coordinate of the object plane and camera position
         # we can calculate the scaling factor
         # Assuming camera looks down
-        scale = (self.object_z - camera_position[2]) / (-1.0)
+        scale = camera_position[2] - self.object_z
 
         # Step 4: Calculate 3D point in camera frame
         x_cam = x_norm * scale
@@ -91,7 +86,6 @@ class CameraTransform:
         # Step 5: Transform to base coordinates
         point_cam = np.array([x_cam, y_cam, z_cam])
         print(f"camera point: {point_cam}")
-        # point_base = np.dot(self.R, point_cam) + camera_position
 
         point_cam_ps = geometry_msgs.msg.PointStamped()
         point_cam_ps.header.stamp = rospy.Time.now()
