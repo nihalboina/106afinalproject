@@ -75,8 +75,13 @@ class CameraTransform:
 
         # Step 5: Transform to world coordinates
         point_cam = np.array([x_cam, y_cam, z_cam])
-        point_world = np.dot(self.R, point_cam) + camera_position
+        # point_world = np.dot(self.R, point_cam) + camera_position
 
+        tf_buffer = tf2_ros.Buffer()
+        
+        transform = tf_buffer.lookup_transform(
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
+        
         return tuple(point_world)
 
 

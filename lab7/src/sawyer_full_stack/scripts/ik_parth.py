@@ -70,9 +70,9 @@ def main():
         ###group.set_position_target([0.5, 0.5, 0.0])
         # PICK
         # should be 0.670, 0.181, -0.081
-        request.ik_request.pose_stamped.pose.position.x = 0.6580775980277255
-        request.ik_request.pose_stamped.pose.position.y = 0.23815168412163157
-        request.ik_request.pose_stamped.pose.position.z = -0.108
+        request.ik_request.pose_stamped.pose.position.x = 0.56
+        request.ik_request.pose_stamped.pose.position.y = 0.03
+        request.ik_request.pose_stamped.pose.position.z = -0.09
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0

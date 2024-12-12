@@ -12,6 +12,27 @@ import numpy as np
 import tf2_ros
 # Importing the CameraTransform class
 from claude_attempt import CameraTransform
+import tf
+from tf.transformations import quaternion_matrix
+
+def quaternion_to_rotation_matrix(quaternion):
+    """
+    Convert a quaternion into a rotation matrix.
+
+    Args:
+        quaternion (geometry_msgs.msg.Quaternion): Quaternion representing rotation.
+
+    Returns:
+        np.ndarray: 4x4 rotation matrix.
+    """
+    q = [
+        quaternion.x,
+        quaternion.y,
+        quaternion.z,
+        quaternion.w
+    ]
+    rot_matrix = quaternion_matrix(q)  # Returns a 4x4 matrix
+    return rot_matrix[:3, :3]  # Extract the 3x3 rotation matrix
 
 
 def tuck():
@@ -122,6 +143,9 @@ def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
         camera_pose.pose.position.z
     ])
 
+    camera_rotation = camera_pose.pose.orientation
+    print(f"camera rotation: {camera_rotation}")
+
     for (cX, cY) in detected_centroids:
         try:
             # Convert pixel to world coordinates using CameraTransform
@@ -223,14 +247,7 @@ def draw_blocks(image, blocks):
 
 def main():
     right_hand_camera_topic = "/io/internal_camera/right_hand_camera/image_raw"
-    camera_frame = "right_hand_camera_frame"  # Replace with actual camera frame ID
-    camera_calibration = {
-        'fx': 627.794983,  # Example focal length in pixels
-        'fy': 626.838013,
-        'cx': 360.174988,  # Example principal point
-        'cy': 231.660996,
-        # Assume blocks are 0.5 meters away (can be adjusted or estimated)
-    }
+    
 
     rospy.init_node('blocks_publisher', anonymous=True)
     # pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
