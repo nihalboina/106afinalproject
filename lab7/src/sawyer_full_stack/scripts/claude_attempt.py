@@ -23,7 +23,7 @@ class CameraTransform:
         # Known Z coordinate of the object plane
         self.object_z = -0.09
 
-        # Calculate the transformation from camera to world
+        # Calculate the transformation from camera to base
         # Since we're given position but not orientation, assuming camera looks straight down
         # You may need to adjust this based on actual camera orientation
         self.R = np.array([
@@ -32,17 +32,25 @@ class CameraTransform:
             [0.0, 0.0, 1.0]
         ])
 
-    def pixel_to_world(self, u, v, camera_position=np.array([0.681, 0.121, 0.426])):
+    def pixel_to_base(self, u, v):
         """
-        Convert pixel coordinates (u,v) to world coordinates (x,y,z)
+        Convert pixel coordinates (u,v) to base coordinates (x,y,z)
 
         Args:
             u (float): x-coordinate in image
             v (float): y-coordinate in image
 
         Returns:
-            tuple: (x, y, z) coordinates in world frame
+            tuple: (x, y, z) coordinates in base frame
         """
+        tf_buffer = tf2_ros.Buffer()
+
+        transform = tf_buffer.lookup_transform(
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
+
+        camera_position = np.array([transform.transform.translation.x,
+                                   transform.transform.translation.y, transform.transform.translation.z])
+
         # Step 1: Undistort the point
         point = np.array([[[u, v]]], dtype=np.float32)
         undistorted = cv2.undistortPoints(point, self.K, self.D, P=self.K)
@@ -76,14 +84,9 @@ class CameraTransform:
         y_cam = y_norm * scale
         z_cam = scale  # Positive because point is in front of camera
 
-        # Step 5: Transform to world coordinates
+        # Step 5: Transform to base coordinates
         point_cam = np.array([x_cam, y_cam, z_cam])
-        # point_world = np.dot(self.R, point_cam) + camera_position
-
-        tf_buffer = tf2_ros.Buffer()
-
-        transform = tf_buffer.lookup_transform(
-            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
+        # point_base = np.dot(self.R, point_cam) + camera_position
 
         point_in_base = tf2_geometry_msgs.do_transform_point(
             point_cam, transform)
@@ -97,18 +100,18 @@ def main():
 
     # Example usage
     u, v = 450, 180  # Example pixel coordinates
-    world_coords = transformer.pixel_to_world(u, v)
+    base_coords = transformer.pixel_to_base(u, v)
     print(f"Image coordinates (u,v): ({u}, {v})")
-    print(f"World coordinates (x,y,z): {world_coords}")
+    print(f"base coordinates (x,y,z): {base_coords}")
 
     # For real-time use, you would do something like:
     """
     while True:
         # Get image from camera
         # Process image to get object pixel coordinates (u,v)
-        # Convert to world coordinates
-        world_coords = transformer.pixel_to_world(u, v)
-        # Use world coordinates for robot control
+        # Convert to base coordinates
+        base_coords = transformer.pixel_to_base(u, v)
+        # Use base coordinates for robot control
     """
 
 

@@ -15,6 +15,7 @@ from claude_attempt import CameraTransform
 import tf
 from tf.transformations import quaternion_matrix
 
+
 def quaternion_to_rotation_matrix(quaternion):
     """
     Convert a quaternion into a rotation matrix.
@@ -112,7 +113,7 @@ def detect_objects(image, n=1):
 
 def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
     """
-    Detect objects in the image and compute their real-world coordinates.
+    Detect objects in the image and compute their real-base coordinates.
 
     Args:
         image_msg (Image): ROS Image message with the current frame.
@@ -148,10 +149,10 @@ def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
 
     for (cX, cY) in detected_centroids:
         try:
-            # Convert pixel to world coordinates using CameraTransform
-            real_x, real_y, real_z = camera_transform.pixel_to_world(
-                cX, cY, camera_position)
-            print(f"Real world coordinates: {real_x}, {real_y}, {real_z}")
+            # Convert pixel to base coordinates using CameraTransform
+            real_x, real_y, real_z = camera_transform.pixel_to_base(
+                cX, cY)
+            print(f"Real base coordinates: {real_x}, {real_y}, {real_z}")
 
             # Create Block message
             block = {
@@ -200,13 +201,13 @@ def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
 
 def get_camera_pose(tf_buffer):
     """
-    Get the current pose of the camera in the world frame.
+    Get the current pose of the camera in the base frame.
 
     Args:
         tf_buffer (tf2_ros.Buffer): TF buffer to lookup transforms.
 
     Returns:
-        PoseStamped: Pose of the camera in the world frame.
+        PoseStamped: Pose of the camera in the base frame.
     """
     try:
         # Lookup the latest available transform
@@ -247,7 +248,6 @@ def draw_blocks(image, blocks):
 
 def main():
     right_hand_camera_topic = "/io/internal_camera/right_hand_camera/image_raw"
-    
 
     rospy.init_node('blocks_publisher', anonymous=True)
     # pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
@@ -286,7 +286,7 @@ def main():
             rospy.logerr("Camera pose is invalid.")
             continue
 
-        # Detect objects and get real-world coordinates
+        # Detect objects and get real-base coordinates
         publish_blocks = run_cv(
             image_msg, camera_transform, camera_pose, max_objects=2)
 
