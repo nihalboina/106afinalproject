@@ -33,6 +33,7 @@ from intera_interface import gripper as robot_gripper
 
 ### MOD: adding a gripper object:
 
+right_gripper = robot_gripper.Gripper('right_gripper')
 
 
 
@@ -121,11 +122,6 @@ def main():
  
     You can also change the rate, timeout if you want
     """
-    rospy.init_node('moveit_node')
-
-    right_gripper = robot_gripper.Gripper('right_gripper')
-
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-task', '-t', type=str, default='line', help=
         'Options: line, circle.  Default: line'
@@ -153,7 +149,7 @@ def main():
     args = parser.parse_args()
 
 
-    # rospy.init_node('moveit_node')
+    rospy.init_node('moveit_node')
     
     tuck()
 
@@ -168,10 +164,10 @@ def main():
     kin = sawyer_kinematics("right")
 
     # Lookup the AR tag position.
-    tag_pos = np.array([0.670, 0.181, -0.081]) # TODO: CHANGE THIS BASED ON WHAT OUR 
+    tag_pos = [0.670, 0.181, -0.081, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
 
 
-    end_pos = np.array([0.670, 0.181, -0.08]) # TEST THAT IT GOES BACK TO WHERE WE STARTED
+    end_pos = [0.670, 0.181, -0.08, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
 
 
     # Get an appropriate RobotTrajectory for the task (circular, linear, or square)
