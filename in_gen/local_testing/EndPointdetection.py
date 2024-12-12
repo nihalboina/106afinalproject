@@ -89,21 +89,34 @@ json_data = {
     ]
 }
 
-# Plot the
-# Plot the JSON points using the midpoint as origin and rotated by the angle
+
 if midpoint_x is not None and midpoint_y is not None and angle is not None:
+    # Adjust the angle from OpenCV's minAreaRect output
+    if angle < -45:
+        angle += 90
+    
+    print(f"Corrected Computed Rotation Angle: {angle:.2f} degrees")
+    
+    # Convert angle to radians
+    angle_rad = np.deg2rad((90-angle))
+
+    # Rotation matrix for 2D points
+    rotation_matrix = np.array([
+        [np.cos(angle_rad), -np.sin(angle_rad)],
+        [np.sin(angle_rad),  np.cos(angle_rad)]
+    ])
+
+    # Rotate and plot the JSON points
     for block in json_data["blocks"]:
         # Extract original block positions
-        x_original, y_original = block["position"][:2]
+        x_original, y_original = block["position"][:2] 
 
-        # Rotate the points around the origin
-        angle_rad = np.deg2rad(angle)
-        x_rotated = x_original * np.cos(angle_rad) - y_original * np.sin(angle_rad)
-        y_rotated = x_original * np.sin(angle_rad) + y_original * np.cos(angle_rad)
+        # Apply the rotation matrix
+        rotated_position = rotation_matrix @ np.array([x_original * 0.7, y_original * 0.7])
 
         # Translate to the midpoint
-        x_final = int(midpoint_x + x_rotated)
-        y_final = int(midpoint_y - y_rotated)  # Subtract because image origin is top-left
+        x_final = int(midpoint_x + rotated_position[0]) 
+        y_final = int(midpoint_y - rotated_position[1]) # Invert y due to top-left origin
 
         # Set color based on the block's color attribute
         color = (0, 255, 0) if block["color"] == "gray" else (0, 255, 255)
@@ -114,6 +127,9 @@ if midpoint_x is not None and midpoint_y is not None and angle is not None:
 # Display the result
 fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 ax.imshow(cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB))
-ax.set_title("Undistorted Image with Rotated JSON Points")
+ax.set_title("Undistorted Image with Corrected Rotated JSON Points")
 ax.axis("off")
 plt.show()
+
+
+
