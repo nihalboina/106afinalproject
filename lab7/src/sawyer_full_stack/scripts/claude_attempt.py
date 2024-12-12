@@ -15,7 +15,7 @@ class CameraTransform:
         self.D = np.array([-0.438799, 0.257299, 0.001038, 0.000384, -0.105028])
 
         # Camera position in robot frame
-        self.camera_position = np.array([0.681, 0.121, 0.426])
+        # self.camera_position = np.array([0.681, 0.121, 0.426])
 
         # Known Z coordinate of the object plane
         self.object_z = -0.09
@@ -29,7 +29,7 @@ class CameraTransform:
             [0.0, 0.0, 1.0]
         ])
 
-    def pixel_to_world(self, u, v):
+    def pixel_to_world(self, u, v, camera_position=np.array([0.681, 0.121, 0.426])):
         """
         Convert pixel coordinates (u,v) to world coordinates (x,y,z)
 
@@ -66,7 +66,7 @@ class CameraTransform:
         # Since we know the Z coordinate of the object plane and camera position
         # we can calculate the scaling factor
         # Assuming camera looks down
-        scale = (self.object_z - self.camera_position[2]) / (-1.0)
+        scale = (self.object_z - camera_position[2]) / (-1.0)
 
         # Step 4: Calculate 3D point in camera frame
         x_cam = x_norm * scale
@@ -75,7 +75,7 @@ class CameraTransform:
 
         # Step 5: Transform to world coordinates
         point_cam = np.array([x_cam, y_cam, z_cam])
-        point_world = np.dot(self.R, point_cam) + self.camera_position
+        point_world = np.dot(self.R, point_cam) + camera_position
 
         return tuple(point_world)
 
