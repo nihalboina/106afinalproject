@@ -76,12 +76,11 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
         target_pos = np.array(tag_pos[:3])
         print("TARGET POSITION:", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
-    elif task == 'circle': # WE PROBABLY DONT USE THIS
+    elif task == 'circle':
         target_pos = np.array(tag_pos[:3])
         target_pos[2] += 0.5
         print("TARGET POSITION:", target_pos)
         trajectory = CircularTrajectory(center_position=target_pos, radius=0.1, total_time=15)
-
     else:
         raise ValueError('task {} not recognized'.format(task))
     
