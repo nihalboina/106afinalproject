@@ -55,18 +55,7 @@ def tuck():
 
 def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     """
-    Returns an appropriate robot trajectory for the specified task.  You should 
-    be implementing the path functions in paths.py and call them here
-    
-    Parameters
-    ----------
-    task : string
-        name of the task.  Options: line, circle, square
-    tag_pos : 3x' :obj:`numpy.ndarray`
-        
-    Returns
-    -------
-    :obj:`moveit_msgs.msg.RobotTrajectory`
+    Returns an appropriate robot trajectory for the specified task.
     """
     num_way = args.num_way
     task = args.task
@@ -83,12 +72,12 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
     print("Current Position:", current_position)
 
     if task == 'line':
-        target_pos = tag_pos[0]
-        # REMOVING THIS SO WE GO DIRECTLY TO POINT target_pos[2] += 0.4 #linear path moves to a Z position above AR Tag.
+        # Convert tag_pos to numpy array and only use position components
+        target_pos = np.array(tag_pos[:3])
         print("TARGET POSITION:", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
-    elif task == 'circle':
-        target_pos = tag_pos[0]
+    elif task == 'circle': # WE PROBABLY DONT USE THIS
+        target_pos = np.array(tag_pos[:3])
         target_pos[2] += 0.5
         print("TARGET POSITION:", target_pos)
         trajectory = CircularTrajectory(center_position=target_pos, radius=0.1, total_time=15)
@@ -145,8 +134,8 @@ def main():
     parser.add_argument('-ar_marker', '-ar', nargs='+', help=
         'Which AR marker to use.  Default: 1'
     )
-    parser.add_argument('-controller_name', '-c', type=str, default='moveit', 
-        help='Options: moveit, open_loop, pid.  Default: moveit'
+    parser.add_argument('-controller_name', '-c', type=str, default='pid', 
+        help='Options: moveit, open_loop, pid.  Default: pid'
     )
     parser.add_argument('-rate', type=int, default=200, help="""
         This specifies how many ms between loops.  It is important to use a rate
@@ -164,15 +153,14 @@ def main():
     parser.add_argument('--log', action='store_true', help='plots controller performance')
     args = parser.parse_args()
 
-
-    # rospy.init_node('moveit_node')
     
-    tuck()
 
     print('Calibrating...')
     right_gripper.calibrate() # ADDED TO CALIBRATE THE GRIPPER< NEED TO DO THIS BEFORE WE USE IT
     rospy.sleep(2.0)
 
+
+    tuck()
     
     # this is used for sending commands (velocity, torque, etc) to the robot
     ik_solver = IK("base", "right_gripper_tip")
@@ -180,10 +168,12 @@ def main():
     kin = sawyer_kinematics("right")
 
     # Lookup the AR tag position.
-    tag_pos = np.array([0.670, 0.181, -0.081]) # TODO: CHANGE THIS BASED ON WHAT OUR 
+    z_offset = 0.136
+    tag_pos_above = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+    tag_pos = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
 
 
-    end_pos = np.array([0.670, 0.181, -0.08]) # TEST THAT IT GOES BACK TO WHERE WE STARTED
+    end_pos = [0.694, 0.008, -0.103 + z_offset, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
 
 
     # Get an appropriate RobotTrajectory for the task (circular, linear, or square)
@@ -209,25 +199,24 @@ def main():
 
     # Move to the trajectory start position
     plan = planner.plan_to_joint_pos(robot_trajectory.joint_trajectory.points[0].positions)
-    if args.controller_name != "moveit":
+    if args.controller_name != "pid":
         plan = planner.retime_trajectory(plan, 0.3)
     planner.execute_plan(plan[1])
 
-    if args.controller_name == "moveit":
+    tuck()
+
+    if args.controller_name == "pid":
         try:
-            input('Press <Enter> to execute the trajectory using MOVEIT')
+            input('Press <Enter> to execute the trajectory using pid')
         except KeyboardInterrupt:
             sys.exit()
         # Uses MoveIt! to execute the trajectory.
         planner.execute_plan(robot_trajectory)
         # ADD CODE TO CLOSE THE GRIPPER
+        print("BEFORE CLOSING GRIPPER")
         right_gripper.close()
 
-        # Execute new trajectory that goesback to tuck
-        tuck() # MAY NEED TO CHANGE TO ENSURE IT DOESNT MOVE FAST - MIGHT NEED TO MAKE THE TUCK CALL MOVE SLOWER SO BLOCK DOESNT FALL OUT.
-
-
-            # By publishing the trajectory to the move_group/display_planned_path topic, you should 
+        # By publishing the trajectory to the move_group/display_planned_path topic, you should 
         # be able to view it in RViz.  You will have to click the "loop animation" setting in 
         # the planned path section of MoveIt! in the menu on the left side of the screen.
         pub = rospy.Publisher('move_group/display_planned_path', DisplayTrajectory, queue_size=10)
@@ -238,7 +227,7 @@ def main():
 
         # Move to the trajectory start position
         plan = planner.plan_to_joint_pos(robot_trajectory_2.joint_trajectory.points[0].positions)
-        if args.controller_name != "moveit":
+        if args.controller_name != "pid":
             plan = planner.retime_trajectory(plan, 0.3)
         planner.execute_plan(plan[1])
 

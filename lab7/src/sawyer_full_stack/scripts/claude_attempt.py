@@ -102,6 +102,79 @@ class CameraTransform:
         # Return the transformed point as a tuple
         return (point_base.point.x, point_base.point.y, point_base.point.z)
 
+    def pixel_to_base_batch(self, pixels):
+        """
+        Convert a batch of pixel coordinates to base coordinates.
+
+        Args:
+            pixels (list of tuples): List of (u, v) pixel coordinates.
+
+        Returns:
+            list of tuples: List of (x, y, z) base coordinates.
+        """
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            rospy.logerr(f"TF lookup failed: {e}")
+            return [(None, None, None) for _ in pixels]
+
+        camera_position = np.array([
+            transform.transform.translation.x,
+            transform.transform.translation.y,
+            transform.transform.translation.z
+        ])
+
+        # Convert to NumPy array for vectorized operations
+        pixels_np = np.array(pixels, dtype=np.float32).reshape(-1, 1, 2)
+
+        # Undistort points
+        undistorted = cv2.undistortPoints(pixels_np, self.K, self.D, P=self.K)
+        undistorted = undistorted.reshape(-1, 2)
+
+        # Camera intrinsics
+        fx = self.K[0, 0]
+        fy = self.K[1, 1]
+        cx = self.K[0, 2]
+        cy = self.K[1, 2]
+
+        # Normalized image coordinates
+        x_norm = (undistorted[:, 0] - cx) / fx
+        # Negative because image y-axis is down
+        y_norm = -(undistorted[:, 1] - cy) / fy
+
+        # Scaling factor based on known Z
+        # Assuming camera looks straight down
+        scale = (camera_position[2] - self.object_z)
+
+        # 3D points in camera frame
+        x_cam = x_norm * scale
+        y_cam = y_norm * scale
+        z_cam = np.full_like(x_cam, scale)
+
+        # Initialize list for transformed points
+        points_base = []
+
+        for xc, yc, zc in zip(x_cam, y_cam, z_cam):
+            point_cam_ps = geometry_msgs.msg.PointStamped()
+            point_cam_ps.header.stamp = rospy.Time.now()
+            point_cam_ps.header.frame_id = 'right_hand_camera'
+            point_cam_ps.point.x = xc
+            point_cam_ps.point.y = yc
+            point_cam_ps.point.z = zc
+
+            # Transform to base frame
+            try:
+                point_base = self.tf_buffer.transform(
+                    point_cam_ps, 'base', rospy.Duration(1.0))
+                points_base.append(
+                    (point_base.point.x, point_base.point.y, point_base.point.z))
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                rospy.logerr("Transform failed for a point")
+                points_base.append((None, None, None))
+
+        return points_base
+
 
 def main():
     # Create instance of transformer

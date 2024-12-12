@@ -72,7 +72,31 @@ def subscribe_once(topic_name, message_type):
         return None
 
 
-def detect_objects(image, n=1):
+def compute_quadrilateral_area(points):
+    """
+    Compute the area of a quadrilateral given its four vertices using the shoelace formula.
+
+    Args:
+        points (list of tuples): List of four (x, y) coordinates.
+
+    Returns:
+        float: Area of the quadrilateral.
+    """
+    if len(points) != 4:
+        raise ValueError(
+            "Exactly four points are required to compute quadrilateral area.")
+
+    x = [p[0] for p in points]
+    y = [p[1] for p in points]
+
+    area = 0.5 * abs(
+        x[0]*y[1] + x[1]*y[2] + x[2]*y[3] + x[3]*y[0] -
+        (y[0]*x[1] + y[1]*x[2] + y[2]*x[3] + y[3]*x[0])
+    )
+    return area
+
+
+def detect_objects(image, camera_transform, n=1):
     """
     Detect up to n objects in the image using edge detection and contour analysis.
 
@@ -106,12 +130,17 @@ def detect_objects(image, n=1):
             continue
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
-        detected_objects.append((cX, cY))
+        x, y, w, h = cv2.boundingRect(cnt)
+        points = [(x, y), (x+w, y), (x, y + h), (x + w, y + h)]
+        converted = camera_transform.pixel_to_base_batch(points)
+        converted = [[point[0], point[1]] for point in converted]
+        base_area = compute_quadrilateral_area(converted)
+        detected_objects.append((cX, cY, base_area))
 
     return detected_objects
 
 
-def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
+def run_cv(image_msg, camera_transform, max_objects=2):
     """
     Detect objects in the image and compute their real-base coordinates.
 
@@ -133,26 +162,18 @@ def run_cv(image_msg, camera_transform, camera_pose, max_objects=2):
         return []
 
     # Detect objects using edge detection
-    detected_centroids = detect_objects(blocks_image, n=max_objects)
+    detected_centroids = detect_objects(
+        blocks_image, camera_transform,  n=max_objects)
 
     detected_blocks = []
 
-    # Extract camera position from camera_pose
-    camera_position = np.array([
-        camera_pose.pose.position.x,
-        camera_pose.pose.position.y,
-        camera_pose.pose.position.z
-    ])
-
-    camera_rotation = camera_pose.pose.orientation
-    print(f"camera rotation: {camera_rotation}")
-
-    for (cX, cY) in detected_centroids:
+    for (cX, cY, area) in detected_centroids:
         try:
             # Convert pixel to base coordinates using CameraTransform
             real_x, real_y, real_z = camera_transform.pixel_to_base(
                 cX, cY)
             print(f"Real base coordinates: {real_x}, {real_y}, {real_z}")
+            print(f"Base area: area")
 
             # Create Block message
             block = {
@@ -257,7 +278,6 @@ def main():
 
     # Initialize TF buffer and listener
     tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
 
     rospy.sleep(1.0)  # Give TF some time to fill
 
@@ -280,15 +300,15 @@ def main():
             continue
 
         # Update camera pose
-        camera_pose = get_camera_pose(tf_buffer)
+        # camera_pose = get_camera_pose(tf_buffer)
 
-        if not camera_pose.header.frame_id:
-            rospy.logerr("Camera pose is invalid.")
-            continue
+        # if not camera_pose.header.frame_id:
+        #     rospy.logerr("Camera pose is invalid.")
+        #     continue
 
         # Detect objects and get real-base coordinates
         publish_blocks = run_cv(
-            image_msg, camera_transform, camera_pose, max_objects=2)
+            image_msg, camera_transform, max_objects=2)
 
         # Draw detected blocks on the image
         try:
