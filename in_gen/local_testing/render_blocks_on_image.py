@@ -4,7 +4,75 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-def render_blocks_on_image(json_data, image_path, origin_point=None):
+
+# Use the CameraTransform class from the provided camera code
+class CameraTransform:
+    def __init__(self):
+            self.K = np.array([
+                [627.794983, 0.0, 360.174988],
+                [0.0, 626.838013, 231.660996],
+                [0.0, 0.0, 1.0]
+            ])
+            self.D = np.array([-0.438799, 0.257299, 0.001038, 0.000384, -0.105028])
+            self.camera_position = np.array([0.681, 0.121, 0.426])
+            self.object_z = -0.09
+            self.R = np.eye(3)  # Identity rotation matrix assuming no tilt
+
+    def world_pt_to_pixel(point, K):
+        translation_w_to_s = np.array([150, 0, 240])  
+        
+        R_w_to_s = np.array([[0, -1, 0],  
+                            [0, 0, 1],  
+                            [1, 0, 0]])  
+        
+        # Apply translation  and rotation to convert the world point to the sensor frame
+        point_s = point - translation_w_to_s
+        point_camera = np.dot(R_w_to_s, point_s)
+
+        #P_homogeneous transforms into a 3x1 array which is the homogenoeius repreentation 3D to 2D
+        p_homogeneous = np.dot(K,point_camera)
+
+        #Pull out the last eleemnt in this 3x1 matric which is lambda, p_homg = [u,v,lambda]^T
+        lambda_ = p_homogeneous[2]  
+
+        #Simple checking
+        is_lambda_negative = (lambda_ <= 0) 
+        if not is_lambda_negative:
+            #Take the U,V matrx, multiply by 1/lambda to get 2D coordinates from homogeneous
+            pixel = p_homogeneous[:2] / lambda_
+            pixel = pixel.astype(int)  
+        else:
+            pixel = np.zeros(2, dtype=int) 
+        
+        return (pixel, is_lambda_negative)
+
+    def pixel_to_world(self, u, v):
+        point = np.array([[[u, v]]], dtype=np.float32)
+        undistorted = cv2.undistortPoints(point, self.K, self.D, P=self.K)
+        u_undist = undistorted[0][0][0]
+        v_undist = undistorted[0][0][1]
+
+        fx = self.K[0, 0]
+        fy = self.K[1, 1]
+        cx = self.K[0, 2]
+        cy = self.K[1, 2]
+
+        x_norm = (u_undist - cx) / fx
+        y_norm = -(v_undist - cy) / fy
+
+        scale = (self.object_z - self.camera_position[2]) / -1.0
+
+        x_cam = x_norm * scale
+        y_cam = y_norm * scale
+        z_cam = -scale
+
+        point_cam = np.array([x_cam, y_cam, z_cam])
+        point_world = np.dot(self.R, point_cam) + self.camera_position
+
+        return tuple(point_world)
+
+
+def render_blocks_on_image(json_data, image_path, transformer):
     env_image = cv2.imread(image_path)
     if env_image is None:
         print("Error: Could not load image.")
@@ -12,20 +80,6 @@ def render_blocks_on_image(json_data, image_path, origin_point=None):
 
     env_image_rgb = cv2.cvtColor(env_image, cv2.COLOR_BGR2RGB)
     image_height, image_width, _ = env_image.shape
-
-    json_x_min = min([block['position'][0] for block in json_data['blocks']]) - 3
-    json_x_max = max([block['position'][0] for block in json_data['blocks']]) + 3
-    json_y_min = min([block['position'][1] for block in json_data['blocks']]) - 3
-    json_y_max = max([block['position'][1] for block in json_data['blocks']]) + 3
-
-    json_width = json_x_max - json_x_min
-    json_height = json_y_max - json_y_min
-    scaling_factor_x = image_width / json_width
-    scaling_factor_y = image_height / json_height
-    scaling_factor = min(scaling_factor_x, scaling_factor_y)  # Uniform scaling
-
-    if origin_point is None:
-        origin_point = [json_x_min, json_y_min]
 
     plt.figure(figsize=(8, 8))
     plt.imshow(env_image_rgb)
@@ -35,21 +89,71 @@ def render_blocks_on_image(json_data, image_path, origin_point=None):
         color = block['color']
         placement_order = block['placement_order']
 
-        scaled_position = [
-            (position[0] - origin_point[0]) * scaling_factor,
-            (position[1] - origin_point[1]) * scaling_factor,
-        ]
+        # Project world coordinates to image using the transformer
+        img_coords, is_lambda_negative = world_to_image_coordinates(position, transformer)
+        if is_lambda_negative:
+            continue  # Skip invalid points
 
-        scaled_position[1] = image_height - scaled_position[1]
+        # Ensure points are within image bounds
+        u, v = img_coords
+        if not (0 <= u < image_width and 0 <= v < image_height):
+            continue
 
-        plt.scatter(scaled_position[0], scaled_position[1], label=f"Block {placement_order}", color=color, s=100)
-        plt.text(scaled_position[0], scaled_position[1], f"{placement_order}", color='black', fontsize=8, ha='center', va='center')
+        plt.scatter(u, v, label=f"Block {placement_order}", color=color, s=100)
+        plt.text(u, v, f"{placement_order}", color='black', fontsize=8, ha='center', va='center')
 
     plt.axis('off')
     plt.title("Block Placement in the Environment")
     plt.show()
 
 
+
+def world_to_image_coordinates(position, transformer):
+    """
+    Converts world coordinates to image coordinates using CameraTransform.
+    """
+    X, Y, Z = position
+
+    # Convert world to pixel using the provided CameraTransform
+    try:
+        img_coords = transformer.pixel_to_world(X, Y)
+        u, v, _ = img_coords
+
+        # Check if the depth Z is behind the camera
+        if Z <= transformer.object_z:
+            return (u, v), True
+
+        return (u, v), False
+    except Exception as e:
+        print(f"Error projecting point {position}: {e}")
+        return (0, 0), True
+
+
+def world_pt_f_to_pixel(point, f, img_height, img_width):
+    """
+        Transform a point in world coordinates to the corresponding pixel on the image plane.
+        Inputs:
+            point: a Numpy array of shape (3,) containing the [x, y, z] coordinates of the point in the world frame
+            f: a scalar float for the focal length of the camera
+            img_height: height of the image in pixels
+            img_width: width of the image in pixels
+
+        Outputs:
+            pixel: a Numpy array of shape (2,) containing the [x, y] integer coordinates of the pixel in the image where the point should be drawn
+            is_lambda_negative: a Boolean that should be true if the homogeneous pixel coordinates have a negative scaling factor lambda, and false otherwise.
+                (This is used to mask out points that lie behind the image plane and therefore shouldn't be plotted)
+    """
+    c_x = img_width / 2  # Principal point x (center of image)
+    c_y = img_height / 2  # Principal point y (center of image)
+    
+    # Intrinsic matrix for square pixels, no skew distortion
+    K = np.array([
+        [f, 0, c_x],  # f for both x and y directions, no skew
+        [0, f, c_y],  # Principal point at the center
+        [0, 0, 1]
+    ])
+    return world_pt_to_pixel(point, K)
+# Example JSON Data
 json_data = {
   "blocks": [
     { "block_id": 1, "position": [60.0, 60.0, 0.0], "orientation": [0, 0, 0], "color": "gray", "placement_order": 1 },
@@ -78,5 +182,6 @@ json_data = {
 }
 
 # Example usage
-image_path = "/Users/rohilkhare/106afinalproject/in_gen/local_testing/image.jpg"  # Path to your environment image
-render_blocks_on_image(json_data, image_path)
+image_path = "/Users/rohilkhare/106afinalproject/in_gen/local_testing/1733893443.944508.png"
+transformer = CameraTransform()
+render_blocks_on_image(json_data, image_path, transformer)
