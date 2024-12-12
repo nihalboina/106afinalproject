@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the black-and-white LEGO base plate image
-image_path = "/Users/rohilkhare/106afinalproject/in_gen/sawyer/CV/src/debug/1733893445.1732132.png"  # Replace with actual image path
+image_path = "/Users/rohilkhare/106afinalproject/in_gen/sawyer/CV/src/debug/1733993787.9014525.png"  # Replace with actual image path
 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
 # Camera matrix (updated with provided intrinsics)
