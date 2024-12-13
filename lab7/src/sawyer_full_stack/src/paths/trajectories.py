@@ -154,12 +154,12 @@ class LinearTrajectory(Trajectory):
 
         Trajectory.__init__(self, total_time)
         self.start_position = start_position
-        self.goal_position = goal_position
+        self.goal_position = goal_position[:3]
         self.distance = self.goal_position - self.start_position
         self.acceleration = (self.distance * 4.0) / (self.total_time ** 2) # keep constant magnitude acceleration
         self.v_max = (self.total_time / 2.0) * self.acceleration # maximum velocity magnitude
-        self.desired_orientation = np.array([0, 1, 0, 0])
-
+        self.desired_orientation = goal_position[3:]
+        
     def target_pose(self, time):
         """
         Returns where the arm end effector should be at time t, in the form of a 
