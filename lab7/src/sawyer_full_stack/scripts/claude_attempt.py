@@ -52,7 +52,7 @@ class CameraTransform:
 
         # Step 1: Undistort the point
         point = np.array([[[u, v]]], dtype=np.float32)
-        undistorted = cv2.fisheye.undistortPoints(point, self.K, self.D, P=self.K)
+        undistorted = cv2.undistortPoints(point, self.K, self.D, P=self.K)
         u_undist = undistorted[0][0][0]
         v_undist = undistorted[0][0][1]
 
@@ -129,7 +129,7 @@ class CameraTransform:
         pixels_np = np.array(pixels, dtype=np.float32).reshape(-1, 1, 2)
 
         # Undistort points
-        undistorted = cv2.fisheye.undistortPoints(pixels_np, self.K, self.D, P=self.K)
+        undistorted = cv2.undistortPoints(pixels_np, self.K, self.D, P=self.K)
         undistorted = undistorted.reshape(-1, 2)
 
         # Camera intrinsics
@@ -179,7 +179,6 @@ class CameraTransform:
 def main():
     # Create instance of transformer
     transformer = CameraTransform()
-
 
     # Example usage
     u, v = 450, 180  # Example pixel coordinates
