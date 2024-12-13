@@ -153,7 +153,6 @@ def main():
     parser.add_argument('--log', action='store_true', help='plots controller performance')
     args = parser.parse_args()
 
-    
 
     print('Calibrating...')
     right_gripper.calibrate() # ADDED TO CALIBRATE THE GRIPPER< NEED TO DO THIS BEFORE WE USE IT
@@ -161,6 +160,7 @@ def main():
 
 
     tuck()
+
     
     # this is used for sending commands (velocity, torque, etc) to the robot
     ik_solver = IK("base", "right_gripper_tip")
@@ -169,23 +169,47 @@ def main():
 
     # Lookup the AR tag position.
     z_offset = 0.12
+<<<<<<< HEAD
     x_offset = 0 #0.1
     y_offset = 0 #-0.03
     tag_pos_above = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
     # tag_pos = [0.6460573135993091 + x_offset, -0.1749450668218313 + y_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
     tag_pos = [0.560, -0.164, -0.136 +  z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+=======
+    x_cam_offset = 0.1
+    y_cam_offset = 0.03
+>>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
 
+    # tag_pos = [0.6460573135993091 + x_cam_offset, -0.1749450668218313 + y_cam_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+    x1, y1, z1 = 
+    tag_pos1 = [x1, y1, z1 + z_offset, 0, 1, 0, 0]
 
-    end_pos = [0.6341941013168179, -0.2238770545595416, -0.10174208844080695 + z_offset, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
+    x2, y2, z2 = 
+    tag_pos2 = [x2, y2, z2 + z_offset, 0, 1, 0, 0]
 
+    x3, y3, z3 = 
+    tag_pos3 = [x3, y3, z3 + z_offset, 0, 1, 0, 0]
+
+    x4, y4, z4 = 
+    tag_pos4 = [x4, y4, z4 + z_offset, 0, 1, 0, 0]
+
+    x5, y5, z5 = 
+    tag_pos5 = [x5, y5, z5 + z_offset, 0, 1, 0, 0]
+
+    x6, y6, z6 = 
+    tag_pos6 = [x6, y6, z6 + z_offset, 0, 1, 0, 0]
 
     # Get an appropriate RobotTrajectory for the task (circular, linear, or square)
     # If the controller is a workspace controller, this should return a trajectory where the
     # positions and velocities are workspace positions and velocities.  If the controller
     # is a jointspace or torque controller, it should return a trajectory where the positions
     # and velocities are the positions and velocities of each joint.
-    robot_trajectory = get_trajectory(limb, kin, ik_solver, tag_pos, args)
-    robot_trajectory_2 = get_trajectory(limb, kin, ik_solver, tag_pos, args)
+    robot_trajectory1 = get_trajectory(limb, kin, ik_solver, tag_pos1, args)
+    robot_trajectory2 = get_trajectory(limb, kin, ik_solver, tag_pos2, args)
+    robot_trajectory3 = get_trajectory(limb, kin, ik_solver, tag_pos3, args)
+    robot_trajectory4 = get_trajectory(limb, kin, ik_solver, tag_pos4, args)
+    robot_trajectory5 = get_trajectory(limb, kin, ik_solver, tag_pos5, args)
+    robot_trajectory6 = get_trajectory(limb, kin, ik_solver, tag_pos6, args)
 
     # This is a wrapper around MoveIt! for you to use.  We use MoveIt! to go to the start position
     # of the trajectory
@@ -195,74 +219,59 @@ def main():
     # be able to view it in RViz.  You will have to click the "loop animation" setting in 
     # the planned path section of MoveIt! in the menu on the left side of the screen.
     pub = rospy.Publisher('move_group/display_planned_path', DisplayTrajectory, queue_size=10)
+
+    # Tuck
+    tuck()
+    
     disp_traj = DisplayTrajectory()
-    disp_traj.trajectory.append(robot_trajectory)
+    disp_traj.trajectory.append(robot_trajectory1)
     disp_traj.trajectory_start = RobotState()
     pub.publish(disp_traj)
 
     # Move to the trajectory start position
-    plan = planner.plan_to_joint_pos(robot_trajectory.joint_trajectory.points[0].positions)
+    plan = planner.plan_to_joint_pos(robot_trajectory1.joint_trajectory.points[0].positions)
+    planner.execute_plan(plan[1])
+
+    try:
+        input('Press <Enter> to execute the trajectory using pid')
+    except KeyboardInterrupt:
+        sys.exit()
+    # Move to the trajectory end position
+    planner.execute_plan(robot_trajectory1)
+    
+    # Close gripper
+    right_gripper.close()
+
+    # Tuck
+    tuck()
+
+    disp_traj = DisplayTrajectory()
+    disp_traj.trajectory.append(robot_trajectory2)
+    disp_traj.trajectory_start = RobotState()
+    pub.publish(disp_traj)
+
+    # Move to the trajectory start position
+    plan = planner.plan_to_joint_pos(robot_trajectory2.joint_trajectory.points[0].positions)
     if args.controller_name != "pid":
         plan = planner.retime_trajectory(plan, 0.3)
     planner.execute_plan(plan[1])
 
+<<<<<<< HEAD
     tuck()
+=======
+    try:
+        input('Press <Enter> to execute the trajectory using pid')
+    except KeyboardInterrupt:
+        sys.exit()
+    # Move to the trajectory end position
+    planner.execute_plan(robot_trajectory2)
+>>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
 
-    if args.controller_name == "pid":
-        try:
-            input('Press <Enter> to execute the trajectory using pid')
-        except KeyboardInterrupt:
-            sys.exit()
-        # Uses MoveIt! to execute the trajectory.
-        planner.execute_plan(robot_trajectory)
+    # Open gripper
+    right_gripper.open()
 
-        tuck()
-        
-        # ADD CODE TO CLOSE THE GRIPPER
-        print("BEFORE CLOSING GRIPPER")
-        right_gripper.close()
-
-        # By publishing the trajectory to the move_group/display_planned_path topic, you should 
-        # be able to view it in RViz.  You will have to click the "loop animation" setting in 
-        # the planned path section of MoveIt! in the menu on the left side of the screen.
-        pub = rospy.Publisher('move_group/display_planned_path', DisplayTrajectory, queue_size=10)
-        disp_traj = DisplayTrajectory()
-        disp_traj.trajectory.append(robot_trajectory_2)
-        disp_traj.trajectory_start = RobotState()
-        pub.publish(disp_traj)
-
-        # Move to the trajectory start position
-        plan = planner.plan_to_joint_pos(robot_trajectory_2.joint_trajectory.points[0].positions)
-        if args.controller_name != "pid":
-            plan = planner.retime_trajectory(plan, 0.3)
-        planner.execute_plan(plan[1])
-
-        # Execute new trajectory that goes to end_pos 
-        planner.execute_plan(robot_trajectory_2)
-
-        # Release gripper
-        right_gripper.open()
-
-        # End code. 
-
-    # TODO: can remove this else block since we won't need to use it.
-
-    else:
-        controller = get_controller(args.controller_name, limb, kin)
-        try:
-            input('Press <Enter> to execute the trajectory using YOUR OWN controller')
-        except KeyboardInterrupt:
-            sys.exit()
-        # execute the path using your own controller.
-        done = controller.execute_path(
-            robot_trajectory, 
-            rate=args.rate, 
-            timeout=args.timeout, 
-            log=args.log
-        )
-        if not done:
-            print('Failed to move to position')
-            sys.exit(0)
+    # Tuck
+    tuck()
 
 if __name__ == "__main__":
     main()

@@ -155,7 +155,7 @@ def run_cv(image):
             print(f"Corrected Computed Rotation Angle: {angle:.2f} degrees")
 
     # Save generated JSON
-    generated_json_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
+    generated_json_path = "/home/cc/ee106a/fa24/class/ee106a-aah/final_project/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
     with open(generated_json_path, 'w') as f:
         json.dump(generated_json, f, indent=4)
 

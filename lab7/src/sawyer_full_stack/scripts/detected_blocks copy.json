@@ -1,0 +1,71 @@
+{
+    "blocks": [
+        {
+            "area": 6.033383269812148e-05,
+            "camera_coordinates": {
+                "x": 475,
+                "y": 385
+            },
+            "pose": {
+                "position": {
+                    "x": 0.5480069815185986,
+                    "y": 0.030235430848792003,
+                    "z": -0.1010217080594712
+                },
+                "orientation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                }
+            },
+            "classification": "block.stl",
+            "confidence": 100.0
+        },
+        {
+            "area": 1.9188902357247795e-05,
+            "camera_coordinates": {
+                "x": 588,
+                "y": 280
+            },
+            "pose": {
+                "position": {
+                    "x": 0.6383484892934352,
+                    "y": -0.07218090395144777,
+                    "z": -0.10176693610465365
+                },
+                "orientation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                }
+            },
+            "classification": "block.stl",
+            "confidence": 100.0
+        },
+        {
+            "area": 1.3983623753037466e-05,
+            "camera_coordinates": {
+                "x": 472,
+                "y": 188
+            },
+            "pose": {
+                "position": {
+                    "x": 0.718159819729787,
+                    "y": 0.03533160545813177,
+                    "z": -0.10073456330611252
+                },
+                "orientation": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "w": 1
+                }
+            },
+            "classification": "block.stl",
+            "confidence": 100.0
+        }
+    ],
+    "time_updated": 1734099705823569297
+}

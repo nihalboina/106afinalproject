@@ -3,7 +3,7 @@
 import rospy
 import rospkg
 import roslaunch
-
+import time
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -14,6 +14,8 @@ import tf2_ros
 from claude_attempt import CameraTransform
 import tf
 from tf.transformations import quaternion_matrix
+
+import json
 
 
 def quaternion_to_rotation_matrix(quaternion):
@@ -50,7 +52,6 @@ def tuck():
         launch.start()
     else:
         print('Canceled. Not tucking the arm.')
-
 
 def subscribe_once(topic_name, message_type):
     """
@@ -107,6 +108,9 @@ def detect_objects(image, camera_transform, n=1):
     Returns:
         list of tuples: List containing (cX, cY) for each detected object.
     """
+    MAX_AREA_THRESHOLD = 1e-4  # Hard-coded maximum allowed area
+    MIN_AREA_THRESHOLD = 3e-6  # Hard-coded maximum allowed area
+
     # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
 
@@ -135,12 +139,32 @@ def detect_objects(image, camera_transform, n=1):
         converted = camera_transform.pixel_to_base_batch(points)
         converted = [[point[0], point[1]] for point in converted]
         base_area = compute_quadrilateral_area(converted)
-        detected_objects.append((cX, cY, base_area))
+        if base_area > MIN_AREA_THRESHOLD and base_area < MAX_AREA_THRESHOLD:
+            detected_objects.append((cX, cY, base_area))
 
     return detected_objects
 
+def combine_block_runs(published, current):
+    current_camera_positions = []
 
-def run_cv(image_msg, camera_transform, max_objects=2):
+    print(published)
+
+    print(current)
+    for block in published:
+        current_camera_positions.append(list(block['camera_coordinates'].values()))
+
+    for block in current:
+        cur_camera_coords = list(block['camera_coordinates'].values())
+        dist_away = [np.sqrt((i[0]-cur_camera_coords[0]) ** 2 + (i[1]-cur_camera_coords[1]) ** 2) for i in current_camera_positions]
+        dist_away.append(100)
+        if min(dist_away) > 10:
+            published.append(block)
+
+    return published
+
+
+
+def run_cv(image_msg, camera_transform, max_objects=2, publish_blocks = []):
     """
     Detect objects in the image and compute their real-base coordinates.
 
@@ -217,9 +241,9 @@ def run_cv(image_msg, camera_transform, max_objects=2):
         cv2.putText(detected_blocks_image, f"({cX}, {cY})", (cX + 10, cY),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-    cv2.imwrite("detected_blocks_image.jpg", detected_blocks_image)
+    
 
-    return detected_blocks
+    return combine_block_runs(publish_blocks, detected_blocks)
 
 
 def get_camera_pose(tf_buffer):
@@ -270,6 +294,8 @@ def draw_blocks(image, blocks):
         cv2.putText(image, text, (x, y + 90),
                     font, 0.7, (0, 0, 255), 2)
 
+
+    cv2.imwrite(f"detected_blocks_image{time.time()}.jpg", image)
     return image
 
 
@@ -314,7 +340,7 @@ def main():
 
         # Detect objects and get real-base coordinates
         publish_blocks = run_cv(
-            image_msg, camera_transform, max_objects=69)
+            image_msg, camera_transform, max_objects=69, publish_blocks=publish_blocks)
 
         # Draw detected blocks on the image
         try:
@@ -333,6 +359,12 @@ def main():
 
         # Log the message
         rospy.loginfo(f"Publishing blocks: {blocks_msg}")
+
+        dict_blocks = {}
+        for i in range(len(blocks_msg["blocks"])):
+            dict_blocks[i] = blocks_msg["blocks"][i]
+        with open("detected_blocks.json", "w") as json_file:
+            json.dump(dict_blocks, json_file, indent=4)
 
         # Publish the message (uncomment and modify as per your message type)
         # pub.publish(blocks_msg)

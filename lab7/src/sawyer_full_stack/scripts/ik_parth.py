@@ -33,6 +33,54 @@ def tuck():
     else:
         print('Canceled. Not tucking the arm.')
 
+def pick_or_place(request, compute_ik, x, y, z, gripper_command=-1):
+    request.ik_request.pose_stamped.pose.position.x = x
+    request.ik_request.pose_stamped.pose.position.y = y
+    request.ik_request.pose_stamped.pose.position.z = z
+    request.ik_request.pose_stamped.pose.orientation.x = 0
+    request.ik_request.pose_stamped.pose.orientation.y = 1
+    request.ik_request.pose_stamped.pose.orientation.z = 0
+    request.ik_request.pose_stamped.pose.orientation.w = 0
+
+    try:
+        # Send the request to the service
+        response = compute_ik(request)
+        
+        # Print the response HERE
+        print(response)
+        group = MoveGroupCommander("right_arm")
+
+        # Setting position and orientation target
+        group.set_pose_target(request.ik_request.pose_stamped)
+
+        # TRY THIS
+        # Setting just the position without specifying the orientation
+        ###group.set_position_target([0.5, 0.5, 0.0])
+
+        # Plan IK
+        plan = group.plan()
+        user_input = input("Enter 'y' if the trajectory looks safe on RVIZ")
+        
+        # Execute IK if safe
+        if user_input == 'y':
+            group.execute(plan[1])
+            right_gripper = robot_gripper.Gripper('right_gripper')
+            print('Closing...')
+            right_gripper.close()
+            rospy.sleep(1.0)
+
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
+
+    if gripper_command == 0:
+        print('Closing...')
+        right_gripper.close()
+        rospy.sleep(1.0)
+    elif gripper_command == 1:
+        print('Opening...')
+        right_gripper.open()
+        rospy.sleep(1.0)
+
 
 def main():
     # Wait for the IK service to become available
@@ -59,9 +107,8 @@ def main():
         request.ik_request.group_name = "right_arm"
 
         # If a Sawyer does not have a gripper, replace '_gripper_tip' with '_wrist' instead
-        #Switch when needed link = "right_gripper_tip"
         # link = "stp_022312TP99620_tip_1"
-        link = "right_hand_camera"
+        link = "right_gripper_tip"
 
         request.ik_request.ik_link_name = link
         # request.ik_request.attempts = 20
@@ -69,6 +116,7 @@ def main():
         
         # Set the desired orientation for the end effector HERE
         ###group.set_position_target([0.5, 0.5, 0.0])
+<<<<<<< HEAD
         # PICK
         # should be 0.670, 0.181, -0.081
         # 0.6496786873208795, -0.039610976832769845, -0.10166218522505455
@@ -83,15 +131,12 @@ def main():
         request.ik_request.pose_stamped.pose.orientation.y = yw
         request.ik_request.pose_stamped.pose.orientation.z = zw
         request.ik_request.pose_stamped.pose.orientation.w = ww
+=======
+>>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
         
-        try:
-            # Send the request to the service
-            response = compute_ik(request)
-            
-            # Print the response HERE
-            print(response)
-            group = MoveGroupCommander("right_arm")
+        z_offset = 0.15
 
+<<<<<<< HEAD
             # Setting position and orientation target
             group.set_pose_target(request.ik_request.pose_stamped)
 
@@ -168,77 +213,53 @@ def main():
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0
         request.ik_request.pose_stamped.pose.orientation.w = 0.0
+=======
+        # pick 1
+        x1, y1, z1 = 
+        pick_or_place(request, compute_ik, x1, y1, z1 + z_offset)
+        pick_or_place(request, compute_ik, x1, y1, z1, 0)
         
-        try:
-            # Send the request to the service
-            response = compute_ik(request)
-            
-            # Print the response HERE
-            print(response)
-            group = MoveGroupCommander("right_arm")
+        tuck()
 
-            # Setting position and orientation target
-            group.set_pose_target(request.ik_request.pose_stamped)
-
-            # TRY THIS
-            # Setting just the position without specifying the orientation
-            ###group.set_position_target([0.5, 0.5, 0.0])
-
-            # Plan IK
-            plan = group.plan()
-            user_input = input("Enter 'y' if the trajectory looks safe on RVIZ")
-            
-            # Execute IK if safe
-            if user_input == 'y':
-                group.execute(plan[1])
-                right_gripper = robot_gripper.Gripper('right_gripper')
-                print('Closing...')
-                right_gripper.open()
-                rospy.sleep(1.0)
-
-            
-        except rospy.ServiceException as e:
-            print("Service call failed: %s"%e)
+        # place 1
+        x2, y2, z2 = 
+        pick_or_place(request, compute_ik, x2, y2, z2 + z_offset)
+        pick_or_place(request, compute_ik, x2, y2, z2, 1)
+        pick_or_place(request, compute_ik, x2, y2, z2 + z_offset)
+>>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
         
-        # Open the right gripper
-        print('Opening...')
-        right_gripper.open()
-        rospy.sleep(1.0)
+        tuck()
 
-        # NEUTRAL
-        request.ik_request.pose_stamped.pose.position.x = 0.689
-        request.ik_request.pose_stamped.pose.position.y = 0.161
-        request.ik_request.pose_stamped.pose.position.z = 0.381        
-        request.ik_request.pose_stamped.pose.orientation.x = 0.0
-        request.ik_request.pose_stamped.pose.orientation.y = 1.0
-        request.ik_request.pose_stamped.pose.orientation.z = 0.0
-        request.ik_request.pose_stamped.pose.orientation.w = 0.0
+        # pick 2
+        x3, y3, z3 = 
+        pick_or_place(request, compute_ik, x3, y3, z3 + z_offset)
+        pick_or_place(request, compute_ik, x3, y3, z3, 0)
         
-        try:
-            # Send the request to the service
-            response = compute_ik(request)
-            
-            # Print the response HERE
-            print(response)
-            group = MoveGroupCommander("right_arm")
+        tuck()
 
-            # Setting position and orientation target
-            group.set_pose_target(request.ik_request.pose_stamped)
+        # place 2
+        x4, y4, z4 = 
+        pick_or_place(request, compute_ik, x4, y4, z4 + z_offset)
+        pick_or_place(request, compute_ik, x4, y4, z4, 1)
+        pick_or_place(request, compute_ik, x4, y4, z4 + z_offset)
+        
+        tuck()
 
-            # TRY THIS
-            # Setting just the position without specifying the orientation
-            ###group.set_position_target([0.5, 0.5, 0.0])
+        # pick 3
+        x5, y5, z5 = 
+        pick_or_place(request, compute_ik, x5, y5, z5 + z_offset)
+        pick_or_place(request, compute_ik, x5, y5, z5, 0)
+        
+        tuck()
 
-            # Plan IK
-            plan = group.plan()
-            user_input = input("Enter 'y' if the trajectory looks safe on RVIZ")
-            
-            # Execute IK if safe
-            if user_input == 'y':
-                group.execute(plan[1])
-            
-        except rospy.ServiceException as e:
-            print("Service call failed: %s"%e)
+        # place 3
+        x6, y6, z6 = 
+        pick_or_place(request, compute_ik, x6, y6, z6 + z_offset)
+        pick_or_place(request, compute_ik, x6, y6, z6, 1)
+        pick_or_place(request, compute_ik, x6, y6, z6 + z_offset)
+        
+        tuck()
+
 
 # Python's syntax for a main() method
 if __name__ == '__main__':

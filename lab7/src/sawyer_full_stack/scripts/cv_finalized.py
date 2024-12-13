@@ -20,7 +20,7 @@ from tf.transformations import quaternion_matrix
 def quaternion_to_rotation_matrix(quaternion):
     """
     Convert a quaternion into a rotation matrix.
-
+   
     Args:
         quaternion (geometry_msgs.msg.Quaternion): Quaternion representing rotation.
 
@@ -109,6 +109,10 @@ def detect_objects(image, camera_transform, n=1):
     Returns:
         list of tuples: List containing (cX, cY, area) for each detected object.
     """
+
+    MAX_AREA_THRESHOLD = 1e-4  # Hard-coded maximum allowed area
+    MIN_AREA_THRESHOLD = 9e-6  # Hard-coded maximum allowed area
+
     # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
 
@@ -125,26 +129,17 @@ def detect_objects(image, camera_transform, n=1):
         filtered_contours, key=cv2.contourArea, reverse=True)
 
     detected_objects = []
-    largest_square_idx = -1
-    max_square_area = 0
 
-    # Identify the largest square-like object
-    for idx, cnt in enumerate(filtered_contours):
-        x, y, w, h = cv2.boundingRect(cnt)
+    # Detect objects, ignoring those exceeding MAX_AREA_THRESHOLD
+    for cnt in filtered_contours:
         area = cv2.contourArea(cnt)
-
-        # Consider it a square if width and height are almost equal
-        if abs(w - h) < 0.1 * max(w, h) and area > max_square_area:
-            largest_square_idx = idx
-            max_square_area = area
-
-    # Remove the largest square-like object if found
-    if largest_square_idx != -1:
-        rospy.loginfo("Ignoring the largest square-like object.")
-        del filtered_contours[largest_square_idx]
-
-    # Detect remaining objects
-    for cnt in filtered_contours[:n]:
+        if area > MAX_AREA_THRESHOLD:
+            rospy.loginfo("Ignoring object with area greater than threshold.")
+            continue
+        if area < MIN_AREA_THRESHOLD:
+            rospy.loginfo("Ignoring object with area greater than threshold.")
+            continue
+    
         M = cv2.moments(cnt)
         if M["m00"] == 0:
             continue
@@ -160,7 +155,6 @@ def detect_objects(image, camera_transform, n=1):
     return detected_objects
 
 
-<<<<<<< HEAD
 # Define a threshold for similarity
 SIMILARITY_THRESHOLD = 10  # Adjust this value as needed
 
@@ -172,8 +166,6 @@ def are_coordinates_similar(coord1, coord2):
 
 # Initialize a dictionary to store detected blocks
 detected_blocks_history = {}
-=======
->>>>>>> 45e3fa7e1a34a44725c36dfd34c9c5006e4107a3
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
