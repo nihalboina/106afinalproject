@@ -1,0 +1,5 @@
+float32 area
+geometry_msgs/Point camera_coordinates
+geometry_msgs/Pose pose
+string classification
+float32 confidence

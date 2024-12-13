@@ -16,6 +16,8 @@ from claude_attempt import CameraTransform
 import tf
 from tf.transformations import quaternion_matrix
 
+from msgs.msg import Block, Blocks
+
 
 def quaternion_to_rotation_matrix(quaternion):
     """
@@ -323,7 +325,7 @@ def main():
     right_hand_camera_topic = "/io/internal_camera/right_hand_camera/image_raw"
 
     rospy.init_node('blocks_publisher', anonymous=True)
-    # pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
+    pub = rospy.Publisher('/blocks', Blocks, queue_size=10)
 
     bridge = CvBridge()
     publish_blocks = []
@@ -381,7 +383,7 @@ def main():
         rospy.loginfo(f"Publishing blocks: {blocks_msg}")
 
         # Publish the message (uncomment and modify as per your message type)
-        # pub.publish(blocks_msg)
+        pub.publish(blocks_msg)
         print(f"To publish: {blocks_msg}")
 
         # Sleep for the remainder of the loop

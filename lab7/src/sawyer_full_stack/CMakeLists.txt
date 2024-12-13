@@ -6,6 +6,31 @@ project(sawyer_full_stack)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED)
 
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  geometry_msgs
+  message_generation
+)
+
+add_message_files(
+  FILES
+  Block.msg
+  Blocks.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
+catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs geometry_msgs
+)
+
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
