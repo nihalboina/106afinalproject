@@ -95,34 +95,45 @@ def compute_quadrilateral_area(points):
     )
     return area
 
-
 def detect_objects(image, camera_transform, n=1):
     """
-    Detect up to n objects in the image using edge detection and contour analysis.
+    Detect up to n objects in the image using edge detection and contour analysis,
+    ignoring only the largest square-like object.
 
     Args:
         image (numpy.ndarray): Grayscale image.
+        camera_transform (CameraTransform): Instance of CameraTransform class.
         n (int): Number of objects to detect.
 
     Returns:
-        list of tuples: List containing (cX, cY) for each detected object.
+        list of tuples: List containing (cX, cY, area) for each detected object.
     """
-    # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
 
-    # Edge Detection
     edges = cv2.Canny(blurred, 50, 150)
 
-    # Find contours
     contours, _ = cv2.findContours(
         edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Filter contours by area and sort by area descending
     filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 500]
     filtered_contours = sorted(
         filtered_contours, key=cv2.contourArea, reverse=True)
 
     detected_objects = []
+    largest_square_index = -1
+    largest_square_area = 0
+
+    for i, cnt in enumerate(filtered_contours):
+        x, y, w, h = cv2.boundingRect(cnt)
+        area = cv2.contourArea(cnt)
+
+        if abs(w - h) < 0.1 * max(w, h) and area > largest_square_area:
+            largest_square_area = area
+            largest_square_index = i
+
+    if largest_square_index != -1:
+        rospy.loginfo("Ignoring the largest square-like object.")
+        filtered_contours.pop(largest_square_index)
 
     for cnt in filtered_contours[:n]:
         M = cv2.moments(cnt)
@@ -131,13 +142,14 @@ def detect_objects(image, camera_transform, n=1):
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         x, y, w, h = cv2.boundingRect(cnt)
-        points = [(x, y), (x+w, y), (x, y + h), (x + w, y + h)]
+        points = [(x, y), (x+w, y), (x, y + h), (x+w, y+h)]
         converted = camera_transform.pixel_to_base_batch(points)
         converted = [[point[0], point[1]] for point in converted]
         base_area = compute_quadrilateral_area(converted)
         detected_objects.append((cX, cY, base_area))
 
     return detected_objects
+
 
 
 def run_cv(image_msg, camera_transform, max_objects=2):
