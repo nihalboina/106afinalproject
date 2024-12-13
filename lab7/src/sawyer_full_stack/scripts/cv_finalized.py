@@ -109,33 +109,41 @@ def detect_objects(image, camera_transform, n=1):
     Returns:
         list of tuples: List containing (cX, cY, area) for each detected object.
     """
+    # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
 
+    # Edge Detection
     edges = cv2.Canny(blurred, 50, 150)
 
+    # Find contours
     contours, _ = cv2.findContours(
         edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # Filter contours by area and sort by area descending
     filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 500]
     filtered_contours = sorted(
         filtered_contours, key=cv2.contourArea, reverse=True)
 
     detected_objects = []
-    largest_square_index = -1
-    largest_square_area = 0
+    largest_square_idx = -1
+    max_square_area = 0
 
-    for i, cnt in enumerate(filtered_contours):
+    # Identify the largest square-like object
+    for idx, cnt in enumerate(filtered_contours):
         x, y, w, h = cv2.boundingRect(cnt)
         area = cv2.contourArea(cnt)
 
-        if abs(w - h) < 0.1 * max(w, h) and area > largest_square_area:
-            largest_square_area = area
-            largest_square_index = i
+        # Consider it a square if width and height are almost equal
+        if abs(w - h) < 0.1 * max(w, h) and area > max_square_area:
+            largest_square_idx = idx
+            max_square_area = area
 
-    if largest_square_index != -1:
+    # Remove the largest square-like object if found
+    if largest_square_idx != -1:
         rospy.loginfo("Ignoring the largest square-like object.")
-        filtered_contours.pop(largest_square_index)
+        del filtered_contours[largest_square_idx]
 
+    # Detect remaining objects
     for cnt in filtered_contours[:n]:
         M = cv2.moments(cnt)
         if M["m00"] == 0:
@@ -143,7 +151,7 @@ def detect_objects(image, camera_transform, n=1):
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         x, y, w, h = cv2.boundingRect(cnt)
-        points = [(x, y), (x+w, y), (x, y + h), (x+w, y+h)]
+        points = [(x, y), (x+w, y), (x, y + h), (x + w, y + h)]
         converted = camera_transform.pixel_to_base_batch(points)
         converted = [[point[0], point[1]] for point in converted]
         base_area = compute_quadrilateral_area(converted)
@@ -152,19 +160,6 @@ def detect_objects(image, camera_transform, n=1):
     return detected_objects
 
 
-<<<<<<< HEAD
-=======
-# Define a threshold for similarity
-SIMILARITY_THRESHOLD = 10  # Adjust this value as needed
-
-# Function to check if two coordinates are similar
-def are_coordinates_similar(coord1, coord2):
-    return (abs(coord1[0] - coord2[0]) < SIMILARITY_THRESHOLD and
-            abs(coord1[1] - coord2[1]) < SIMILARITY_THRESHOLD)
-
-# Initialize a dictionary to store detected blocks
-detected_blocks_history = {}
->>>>>>> 7d9d58db99ce1bd6bd2eebd4b86f8cac3eb67dd0
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
