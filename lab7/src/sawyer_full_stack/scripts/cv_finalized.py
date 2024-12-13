@@ -160,7 +160,6 @@ def detect_objects(image, camera_transform, n=1):
     return detected_objects
 
 
-<<<<<<< HEAD
 # Define a threshold for similarity
 SIMILARITY_THRESHOLD = 10  # Adjust this value as needed
 
@@ -172,8 +171,6 @@ def are_coordinates_similar(coord1, coord2):
 
 # Initialize a dictionary to store detected blocks
 detected_blocks_history = {}
-=======
->>>>>>> 45e3fa7e1a34a44725c36dfd34c9c5006e4107a3
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
