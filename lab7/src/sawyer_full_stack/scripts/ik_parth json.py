@@ -87,21 +87,12 @@ import time
 
 def get_block_coordinates(json_file, num, retry_interval=5):
     """
-    Reads the JSON file and retrieves the coordinates (x, y, z) of the specified block index.
-    If the JSON file does not contain any blocks, it waits and retries until a block is available.
+    Extracts x, y, z coordinates of item `num` from a JSON file.
+    If the file doesn't contain items, waits and keeps trying.
 
-    Args:
-        json_file (str): Path to the JSON file.
-        num (int): Index of the block to retrieve.
-        retry_interval (int): Time in seconds to wait between retries if no blocks are found.
-
-    Returns:
-        tuple: Coordinates (x, y, z) of the block.
-
-    Raises:
-        ValueError: If the block at the specified index is missing coordinates.
-        FileNotFoundError: If the JSON file is not found.
-        IndexError: If the specified block index is out of range.
+    :param file_path: Path to the JSON file.
+    :param num: Item number to extract coordinates for.
+    :return: Tuple of (x, y, z) coordinates.
     """
     while True:
         try:
@@ -109,38 +100,30 @@ def get_block_coordinates(json_file, num, retry_interval=5):
             with open(json_file, 'r') as file:
                 data = json.load(file)
 
-            # Validate the 'blocks' key and ensure it's a list
-            if 'blocks' in data and isinstance(data['blocks'], list):
-                if len(data['blocks']) == 0:
-                    print("No blocks found. Retrying...")
-                    time.sleep(retry_interval)
-                    continue
-
-                # Check if the requested index is within bounds
-                if num < 0 or num >= len(data['blocks']):
-                    raise IndexError(f"Block index {num} is out of range. Valid indices: 0 to {len(data['blocks']) - 1}")
-
-                # Get the block at the specified index
-                block = data['blocks'][num]
-
-                # Extract the x, y, z coordinates
-                x = block.get('x', None)
-                y = block.get('y', None)
-                z = block.get('z', None)
-
-                if x is not None and y is not None and z is not None:
-                    # Break the loop once the coordinates are found
-                    return x, y, z
-                else:
-                    raise ValueError(f"Block at index {num} does not contain complete x, y, z coordinates.")
+            # Check if the item `num` exists
+            if str(num) in data:
+                item = data[str(num)]
+                position = item["pose"]["position"]
+                x = position["x"]
+                y = position["y"]
+                z = position["z"]
+                return x, y, z
             else:
-                print("No valid 'blocks' list in the JSON file. Retrying...")
-                time.sleep(retry_interval)
-        
+                print(f"Item {num} not found. Retrying...")
+
         except json.JSONDecodeError:
-            raise ValueError("Failed to decode JSON. Please check the file format and content.")
+            print("Invalid JSON format. Retrying...")
         except FileNotFoundError:
-            raise ValueError(f"File '{json_file}' not found.")
+            print("File not found. Retrying...")
+        except KeyError:
+            print("Unexpected data structure. Retrying...")
+
+        # Wait before retrying
+        time.sleep(1)
+
+# Example usage
+# coordinates = extract_xyz_from_json('data.json', 3)
+# print(coordinates)
 
 
 def get_placement_coordinates(json_file, block_num):
@@ -218,7 +201,7 @@ def main():
         block_pick_num = 0
         try:
             x1, y1, z1 = get_block_coordinates(json_file_cv, block_pick_num)
-            print(f"Coordinates of the first block: x={x1}, y={y1}, z={z1}")
+            print(f"Coordinates of the first pick block: x={x1}, y={y1}, z={z1}")
         except ValueError as e:
             print(e)
 
@@ -232,7 +215,7 @@ def main():
         block_num = 1
         try:
             x2, y2, z2 = get_placement_coordinates(json_file_gpt, block_num)
-            print(f"Coordinates of block {block_num}: x={x2}, y={y2}, z={z2}")
+            print(f"Coordinates of place block {block_num}: x={x2}, y={y2}, z={z2}")
         except ValueError as e:
             print(e)
 
@@ -247,7 +230,7 @@ def main():
         block_pick_num = 0
         try:
             x3, y3, z3 = get_block_coordinates(json_file_cv, block_pick_num)
-            print(f"Coordinates of the first block: x={x3}, y={y3}, z={z3}")
+            print(f"Coordinates of the second pick block: x={x3}, y={y3}, z={z3}")
         except ValueError as e:
             print(e)
          
@@ -260,7 +243,7 @@ def main():
         block_num += 1
         try:
             x4, y4, z4 = get_placement_coordinates(json_file_gpt, block_num)
-            print(f"Coordinates of block {block_num}: x={x4}, y={y4}, z={z4}")
+            print(f"Coordinates of place block {block_num}: x={x4}, y={y4}, z={z4}")
         except ValueError as e:
             print(e)
         pick_or_place(request, compute_ik, x4, y4, z4 + z_offset)
@@ -273,7 +256,7 @@ def main():
         block_pick_num = 0
         try:
             x5, y5, z5 = get_block_coordinates(json_file_cv, block_pick_num)
-            print(f"Coordinates of the first block: x={x5}, y={y5}, z={z5}")
+            print(f"Coordinates of the third pick block: x={x5}, y={y5}, z={z5}")
         except ValueError as e:
             print(e)
          
@@ -286,7 +269,7 @@ def main():
         block_num += 1
         try:
             x6, y6, z6 = get_placement_coordinates(json_file_gpt, block_num)
-            print(f"Coordinates of block {block_num}: x={x6}, y={y6}, z={z6}")
+            print(f"Coordinates of place block {block_num}: x={x6}, y={y6}, z={z6}")
         except ValueError as e:
             print(e)
 
