@@ -182,8 +182,9 @@ def run_cv(image, camera_transform):
 
             # Draw the block position as a circle
             cv2.circle(output_image, (x_final, y_final), 5, color, -1)
+            layer_number = int(block["position"][2] / 40.0)  # Normalize by dividing by 40 since the layers are in increments of 40
             real_x, real_y, real_z = camera_transform.distorted_pixel_to_base(
-                x_final, y_final)
+                x_final, y_final, layer_num=layer_number)
             print(f"Block ID {block['block_id']} -> Translated (u, v): ({x_final}, {y_final}) -> Translated real-world (x,y,z): ({real_x, real_y, real_z})")
 
     # Overlay the stud pattern if we have the box
