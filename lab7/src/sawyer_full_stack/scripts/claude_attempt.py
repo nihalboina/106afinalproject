@@ -102,7 +102,7 @@ class CameraTransform:
         # Return the transformed point as a tuple
         return (point_base.point.x, point_base.point.y, point_base.point.z)
 
-    def distorted_pixel_to_base(self, u, v):
+    def distorted_pixel_to_base(self, u, v, object_z = -0.1, layer_num=0):
         """
         Convert pixel coordinates (u,v) to base coordinates (x,y,z)
 
@@ -145,7 +145,10 @@ class CameraTransform:
         # Since we know the Z coordinate of the object plane and camera position
         # we can calculate the scaling factor
         # Assuming camera looks down
-        scale = camera_position[2] - self.object_z
+        layer_prong = 0.064  # in meters
+        scale = camera_position[2] - object_z - (layer_prong * layer_num)
+
+        # CHECK IF ITS - or + for object_z
 
         # Step 4: Calculate 3D point in camera frame
         x_cam = x_norm * scale
