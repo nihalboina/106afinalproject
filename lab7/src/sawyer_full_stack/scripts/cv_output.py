@@ -124,6 +124,9 @@ def run_cv(image, camera_transform):
     box = None
 
     generated_json = {"u_v_points": []}
+    output_data = {}
+    output_data["world_points"] = []
+    
 
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
@@ -148,7 +151,7 @@ def run_cv(image, camera_transform):
         print(f"Corrected Computed Rotation Angle: {angle:.2f} degrees")
 
     # Load JSON data from the GPT file
-    json_file_path = "/home/cc/ee106a/fa24/class/ee106a-aah/final_project/106afinalproject/in_gen/GPTComponent/Chatgpt_input.json"
+    json_file_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/GPTComponent/Chatgpt_input.json"
     with open(json_file_path, 'r') as f:
         json_data_file = json.load(f)
 
@@ -162,6 +165,8 @@ def run_cv(image, camera_transform):
         ])
 
         # Plot only the GPT-based JSON data points
+
+        
         for block in json_data_file["blocks"]:
             x_original, y_original = block["position"][:2]
             # Apply rotation and scaling
@@ -187,6 +192,15 @@ def run_cv(image, camera_transform):
                 x_final, y_final, layer_num=layer_number)
             print(f"Block ID {block['block_id']} -> Translated (u, v): ({x_final}, {y_final}) -> Translated real-world (x,y,z): ({real_x, real_y, real_z})")
 
+            output_data["world_points"].append({
+                    "block_id": block['block_id'],
+                    "x": round(real_x, 4),
+                    "y": round(real_y, 4),
+                    "z": round(real_z, 4)
+                })
+            
+    with open("/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/main/src/output.json", 'w') as f:
+        json.dump(output_data, f, indent=4)
     # Overlay the stud pattern if we have the box
     if box is not None:
         sorted_box_x = sorted(box, key=lambda x: x[0])
@@ -212,7 +226,7 @@ def run_cv(image, camera_transform):
                 cv2.circle(output_image, (int(left_edge_x), int(left_edge_y)), 5, stud_color, -1)
 
     # Save generated JSON
-    generated_json_path = "/home/cc/ee106a/fa24/class/ee106a-aah/final_project/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
+    generated_json_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
     with open(generated_json_path, 'w') as f:
         json.dump(generated_json, f, indent=4)
 

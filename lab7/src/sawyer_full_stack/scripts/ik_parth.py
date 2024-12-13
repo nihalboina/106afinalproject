@@ -73,12 +73,12 @@ def main():
         # should be 0.670, 0.181, -0.081
         # 0.6496786873208795, -0.039610976832769845, -0.10166218522505455
         # -0.018, 0.710, -0.019, 0.704
-        x, y, z = 0.680, 0.125, 0.422
-        xw, yw, zw, ww = -0.7, 0.7, 0, 0
+        x, y, z = 0.722, -0.143, -0.139 
+        xw, yw, zw, ww = 0, 1, 0, 0
         # xw, yw, zw, ww = -0.018, 0.710, -0.019, 0.704
         request.ik_request.pose_stamped.pose.position.x = x
         request.ik_request.pose_stamped.pose.position.y = y
-        request.ik_request.pose_stamped.pose.position.z = z + 0.25
+        request.ik_request.pose_stamped.pose.position.z = z + 0.12
         request.ik_request.pose_stamped.pose.orientation.x = xw
         request.ik_request.pose_stamped.pose.orientation.y = yw
         request.ik_request.pose_stamped.pose.orientation.z = zw
@@ -117,19 +117,19 @@ def main():
 
         # Set the desired orientation for the end effector HERE
         s = input("stop")
-        print('Closing...')
-        right_gripper.close()
         rospy.sleep(1.0)
 
         # NEUTRAL
-        request.ik_request.pose_stamped.pose.position.x = 0.689
-        request.ik_request.pose_stamped.pose.position.y = 0.161
-        request.ik_request.pose_stamped.pose.position.z = 0.381        
-        request.ik_request.pose_stamped.pose.orientation.x = 0.0
-        request.ik_request.pose_stamped.pose.orientation.y = 1.0
-        request.ik_request.pose_stamped.pose.orientation.z = 0.0
-        request.ik_request.pose_stamped.pose.orientation.w = 0.0
-        
+        x, y, z = 0.722, -0.143, -0.139 
+        xw, yw, zw, ww = 0, 1, 0, 0
+        # xw, yw, zw, ww = -0.018, 0.710, -0.019, 0.704
+        request.ik_request.pose_stamped.pose.position.x = x
+        request.ik_request.pose_stamped.pose.position.y = y
+        request.ik_request.pose_stamped.pose.position.z = z
+        request.ik_request.pose_stamped.pose.orientation.x = xw
+        request.ik_request.pose_stamped.pose.orientation.y = yw
+        request.ik_request.pose_stamped.pose.orientation.z = zw
+        request.ik_request.pose_stamped.pose.orientation.w = ww
         try:
             # Send the request to the service
             response = compute_ik(request)
@@ -156,10 +156,14 @@ def main():
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
+        print('Closing...')
+        right_gripper.close()
+        s = input("enter")
+
         # PLACE 0.757, 0.045, -0.149
-        request.ik_request.pose_stamped.pose.position.x = 0.5329515764309306
-        request.ik_request.pose_stamped.pose.position.y = 0.2712330013762762
-        request.ik_request.pose_stamped.pose.position.z = -0.09894391417188214     
+        request.ik_request.pose_stamped.pose.position.x = 0.689
+        request.ik_request.pose_stamped.pose.position.y = 0.161
+        request.ik_request.pose_stamped.pose.position.z = 0.381        
         request.ik_request.pose_stamped.pose.orientation.x = 0.0
         request.ik_request.pose_stamped.pose.orientation.y = 1.0
         request.ik_request.pose_stamped.pose.orientation.z = 0.0

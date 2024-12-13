@@ -163,7 +163,7 @@ def main():
     tuck()
     
     # this is used for sending commands (velocity, torque, etc) to the robot
-    ik_solver = IK("base", "right_hand_camera")
+    ik_solver = IK("base", "right_gripper_tip")
     limb = intera_interface.Limb("right")
     kin = sawyer_kinematics("right")
 
@@ -173,7 +173,7 @@ def main():
     y_offset = 0 #-0.03
     tag_pos_above = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
     # tag_pos = [0.6460573135993091 + x_offset, -0.1749450668218313 + y_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
-    tag_pos = [0.680, 0.125, 0.422 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+    tag_pos = [0.560, -0.164, -0.136 +  z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
 
 
     end_pos = [0.6341941013168179, -0.2238770545595416, -0.10174208844080695 + z_offset, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
@@ -206,7 +206,7 @@ def main():
         plan = planner.retime_trajectory(plan, 0.3)
     planner.execute_plan(plan[1])
 
-    # tuck()
+    tuck()
 
     if args.controller_name == "pid":
         try:
