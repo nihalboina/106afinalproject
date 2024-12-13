@@ -173,8 +173,8 @@ class CameraTransform:
 
         return points_base
 
-input_file_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
-output_file_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/ConvertedGPTWorldPts.json"
+input_file_path = "Generated_UV_Points.json"
+output_file_path = "ConvertedGPTWorldPts.json"
 
 
 def main():
