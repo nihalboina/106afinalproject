@@ -98,7 +98,7 @@ def compute_quadrilateral_area(points):
 
 def detect_objects(image, camera_transform, n=1):
     """
-    Detect up to n objects in the image using fisheye undistortion and Sobel edge detection.
+    Detect up to n objects in the image using undistortion and Sobel edge detection.
 
     Args:
         image (numpy.ndarray): Grayscale image.
@@ -107,14 +107,21 @@ def detect_objects(image, camera_transform, n=1):
     Returns:
         list of tuples: List containing (cX, cY) for each detected object.
     """
-    # Step 1: Undistort the image
-    undistorted = cv2.fisheye.undistortImage(
-        image, camera_transform.K, D=camera_transform.D, Knew=camera_transform.K)
+    # Step 1: Undistort the image using standard camera model
+    h, w = image.shape[:2]
+    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+        camera_transform.K, camera_transform.D, (w, h), 1, (w, h))
     
+    undistorted = cv2.undistort(image, camera_transform.K, camera_transform.D, None, new_camera_matrix)
+
+    # Crop the image if needed
+    x, y, w, h = roi
+    undistorted = undistorted[y:y + h, x:x + w]
+
     # Step 2: Apply Sobel Edge Detection
     sobelx = cv2.Sobel(undistorted, cv2.CV_64F, 1, 0, ksize=3)
     sobely = cv2.Sobel(undistorted, cv2.CV_64F, 0, 1, ksize=3)
-    edges = cv2.magnitude(sobelx, sobely).astype(np.uint8)
+    edges = cv2.convertScaleAbs(sobelx) + cv2.convertScaleAbs(sobely)
 
     # Step 3: Find contours
     contours, _ = cv2.findContours(
@@ -145,6 +152,7 @@ def detect_objects(image, camera_transform, n=1):
         detected_objects.append((cX, cY, base_area))
 
     return detected_objects
+
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
