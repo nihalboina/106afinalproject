@@ -95,63 +95,68 @@ def compute_quadrilateral_area(points):
     )
     return area
 
-
 def detect_objects(image, camera_transform, n=1):
     """
-    Detect up to n objects in the image using undistortion and Sobel edge detection.
+    Detect objects in the image using undistortion, Canny Edge Detection, and contours.
 
     Args:
         image (numpy.ndarray): Grayscale image.
         n (int): Number of objects to detect.
 
     Returns:
-        list of tuples: List containing (cX, cY) for each detected object.
+        list of tuples: List containing (cX, cY, base_area) for each detected object.
     """
-    # Step 1: Undistort the image using standard camera model
+    # Undistort the image
     h, w = image.shape[:2]
     new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
         camera_transform.K, camera_transform.D, (w, h), 1, (w, h))
-    
     undistorted = cv2.undistort(image, camera_transform.K, camera_transform.D, None, new_camera_matrix)
-
+    
     # Crop the image if needed
     x, y, w, h = roi
     undistorted = undistorted[y:y + h, x:x + w]
 
-    # Step 2: Apply Sobel Edge Detection
-    sobelx = cv2.Sobel(undistorted, cv2.CV_64F, 1, 0, ksize=3)
-    sobely = cv2.Sobel(undistorted, cv2.CV_64F, 0, 1, ksize=3)
-    edges = cv2.convertScaleAbs(sobelx) + cv2.convertScaleAbs(sobely)
+    # Apply Gaussian Blur
+    blurred = cv2.GaussianBlur(undistorted, (5, 5), 0)
 
-    # Step 3: Find contours
-    contours, _ = cv2.findContours(
-        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Use Canny Edge Detection for better results
+    edges = cv2.Canny(blurred, 50, 150)
 
-    # Filter and sort by area
+    # Find contours from edges
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Filter contours by area
     filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 500]
     filtered_contours = sorted(filtered_contours, key=cv2.contourArea, reverse=True)
 
     detected_objects = []
 
     for cnt in filtered_contours[:n]:
+        # Get the minimum enclosing bounding box
+        rotated_rect = cv2.minAreaRect(cnt)
+        box = cv2.boxPoints(rotated_rect)
+        box = np.int0(box)
+        
+        # Calculate centroid
         M = cv2.moments(cnt)
         if M["m00"] == 0:
             continue
+        
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
 
-        # Compute bounding box points
-        x, y, w, h = cv2.boundingRect(cnt)
-        points = [(x, y), (x + w, y), (x, y + h), (x + w, y + h)]
-
-        # Convert to base frame coordinates
+        # Convert bounding box points to base coordinates
+        points = [(int(p[0]), int(p[1])) for p in box]
         converted = camera_transform.pixel_to_base_batch(points)
         converted = [[point[0], point[1]] for point in converted]
+        
+        # Compute the base area
         base_area = compute_quadrilateral_area(converted)
-
+        
         detected_objects.append((cX, cY, base_area))
 
     return detected_objects
+
 
 
 def run_cv(image_msg, camera_transform, max_objects=2):
