@@ -102,6 +102,75 @@ class CameraTransform:
         # Return the transformed point as a tuple
         return (point_base.point.x, point_base.point.y, point_base.point.z)
 
+    def distorted_pixel_to_base(self, u, v):
+        """
+        Convert pixel coordinates (u,v) to base coordinates (x,y,z)
+
+        Args:
+            u (float): x-coordinate in image
+            v (float): y-coordinate in image
+
+        Returns:
+            tuple: (x, y, z) coordinates in base frame
+        """
+        transform = self.tf_buffer.lookup_transform(
+            'base', 'right_hand_camera', rospy.Time(0), rospy.Duration(1.0))
+
+        camera_position = np.array([transform.transform.translation.x,
+                                   transform.transform.translation.y, transform.transform.translation.z])
+
+        # Step 1: Undistort the point
+        # point = np.array([[[u, v]]], dtype=np.float32)
+        # undistorted = cv2.undistortPoints(point, self.K, self.D, P=self.K)
+        u_undist = u
+        v_undist = v
+
+        # Step 2: Convert to normalized image coordinates
+        # Note:
+        # - Image coordinates (u,v) have origin at top-left
+        # - Camera coordinates have origin at center with:
+        #   - X axis pointing right
+        #   - Y axis pointing down
+        #   - Z axis pointing forward
+        fx = self.K[0, 0]
+        fy = self.K[1, 1]
+        cx = self.K[0, 2]
+        cy = self.K[1, 2]
+
+        # Calculate ray from camera, accounting for image coordinate system
+        x_norm = (u_undist - cx) / fx  # Right is positive
+        y_norm = (v_undist - cy) / fy  # Up is positive in camera frame
+
+        # Step 3: Calculate the scaling factor
+        # Since we know the Z coordinate of the object plane and camera position
+        # we can calculate the scaling factor
+        # Assuming camera looks down
+        scale = camera_position[2] - self.object_z
+
+        # Step 4: Calculate 3D point in camera frame
+        x_cam = x_norm * scale
+        y_cam = y_norm * scale
+        z_cam = scale  # Positive because point is in front of camera
+
+        # Step 5: Transform to base coordinates
+        point_cam = np.array([x_cam, y_cam, z_cam])
+        print(f"camera point: {point_cam}")
+
+        point_cam_ps = geometry_msgs.msg.PointStamped()
+        point_cam_ps.header.stamp = rospy.Time.now()
+        # Ensure this matches your TF frame
+        point_cam_ps.header.frame_id = 'right_hand_camera'
+        point_cam_ps.point.x = x_cam
+        point_cam_ps.point.y = y_cam
+        point_cam_ps.point.z = z_cam
+
+        # Step 5: Transform to base coordinates
+        point_base = self.tf_buffer.transform(
+            point_cam_ps, 'base', rospy.Duration(1.0))
+
+        # Return the transformed point as a tuple
+        return (point_base.point.x, point_base.point.y, point_base.point.z)
+
     def pixel_to_base_batch(self, pixels):
         """
         Convert a batch of pixel coordinates to base coordinates.
