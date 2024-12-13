@@ -32,7 +32,7 @@ def render_structure_from_stl(blocks, stl_file_path):
 
 def main():
     json_file_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/Chatgpt_input.json"
-    stl_file_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/Block+v2.stl"
+    stl_file_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTPromptResources/Block+v2.stl"
 
     try:
         blocks = load_structure_from_json(json_file_path)

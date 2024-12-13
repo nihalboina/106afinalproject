@@ -1,0 +1,106 @@
+{
+    "bounding_box": [
+        {
+            "u": 297,
+            "v": 104
+        },
+        {
+            "u": 478,
+            "v": 90
+        },
+        {
+            "u": 492,
+            "v": 265
+        },
+        {
+            "u": 311,
+            "v": 279
+        }
+    ],
+    "chatgpt_points": [
+        {
+            "block_id": 1,
+            "u": 355,
+            "v": 232,
+            "color": "gray"
+        },
+        {
+            "block_id": 2,
+            "u": 352,
+            "v": 187,
+            "color": "gray"
+        },
+        {
+            "block_id": 3,
+            "u": 348,
+            "v": 142,
+            "color": "gray"
+        },
+        {
+            "block_id": 4,
+            "u": 397,
+            "v": 228,
+            "color": "gray"
+        },
+        {
+            "block_id": 5,
+            "u": 394,
+            "v": 184,
+            "color": "gray"
+        },
+        {
+            "block_id": 6,
+            "u": 390,
+            "v": 139,
+            "color": "gray"
+        },
+        {
+            "block_id": 7,
+            "u": 439,
+            "v": 225,
+            "color": "gray"
+        },
+        {
+            "block_id": 8,
+            "u": 435,
+            "v": 180,
+            "color": "gray"
+        },
+        {
+            "block_id": 9,
+            "u": 432,
+            "v": 135,
+            "color": "gray"
+        },
+        {
+            "block_id": 10,
+            "u": 374,
+            "v": 208,
+            "color": "gray"
+        },
+        {
+            "block_id": 11,
+            "u": 371,
+            "v": 163,
+            "color": "gray"
+        },
+        {
+            "block_id": 12,
+            "u": 416,
+            "v": 204,
+            "color": "gray"
+        },
+        {
+            "block_id": 13,
+            "u": 413,
+            "v": 159,
+            "color": "gray"
+        },
+        {
+            "block_id": 14,
+            "u": 394,
+            "v": 184,
+            "color": "gray"
+        }
+    ]
+}
