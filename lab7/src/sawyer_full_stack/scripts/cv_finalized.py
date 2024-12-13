@@ -3,6 +3,7 @@
 import rospy
 import rospkg
 import roslaunch
+import json
 
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Image
@@ -151,6 +152,19 @@ def detect_objects(image, camera_transform, n=1):
     return detected_objects
 
 
+<<<<<<< HEAD
+=======
+# Define a threshold for similarity
+SIMILARITY_THRESHOLD = 10  # Adjust this value as needed
+
+# Function to check if two coordinates are similar
+def are_coordinates_similar(coord1, coord2):
+    return (abs(coord1[0] - coord2[0]) < SIMILARITY_THRESHOLD and
+            abs(coord1[1] - coord2[1]) < SIMILARITY_THRESHOLD)
+
+# Initialize a dictionary to store detected blocks
+detected_blocks_history = {}
+>>>>>>> 7d9d58db99ce1bd6bd2eebd4b86f8cac3eb67dd0
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
@@ -180,45 +194,59 @@ def run_cv(image_msg, camera_transform, max_objects=2):
     detected_blocks = []
 
     for (cX, cY, area) in detected_centroids:
-        try:
-            # Convert pixel to base coordinates using CameraTransform
-            real_x, real_y, real_z = camera_transform.pixel_to_base(
-                cX, cY)
-            print(f"Real base coordinates: {real_x}, {real_y}, {real_z}")
-            print(f"Base area: {area}")
+        # Check for similar blocks in history
+        found_similar = False
+        for key in list(detected_blocks_history.keys()):
+            if are_coordinates_similar((cX, cY), detected_blocks_history[key]['camera_coordinates']):
+                found_similar = True
+                break
+        
+        if not found_similar:
+            try:
+                # Convert pixel to base coordinates using CameraTransform
+                real_x, real_y, real_z = camera_transform.pixel_to_base(
+                    cX, cY)
+                print(f"Real base coordinates: {real_x}, {real_y}, {real_z}")
+                print(f"Base area: {area}")
 
-            # Create Block message
-            block = {
-                "area": area,
-                "camera_coordinates": {
-                    "x": cX,
-                    "y": cY
-                },
-                "pose": {
-                    "position": {
-                        "x": real_x,
-                        "y": real_y,
-                        "z": real_z
+                # Create Block message
+                block = {
+                    "area": area,
+                    "camera_coordinates": {
+                        "x": cX,
+                        "y": cY
                     },
-                    "orientation": {
-                        "x": 0,
-                        "y": 0,
-                        "z": 0,
-                        "w": 1  # Neutral orientation
-                    }
-                },
-                "classification": "block.stl",  # Placeholder classification
-                "confidence": 100.0  # Initial confidence
-            }
+                    "pose": {
+                        "position": {
+                            "x": real_x,
+                            "y": real_y,
+                            "z": real_z
+                        },
+                        "orientation": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0,
+                            "w": 1  # Neutral orientation
+                        }
+                    },
+                    "classification": "block.stl",  # Placeholder classification
+                    "confidence": 100.0  # Initial confidence
+                }
 
-            detected_blocks.append(block)
-        except ValueError as ve:
-            rospy.logerr(f"Coordinate Transformation Error: {ve}")
-            continue
-        except Exception as e:
-            rospy.logerr(
-                f"Unexpected error during coordinate transformation: {e}")
-            continue
+                detected_blocks.append(block)
+                # Store the block in history
+                detected_blocks_history[len(detected_blocks_history)] = block
+            except ValueError as ve:
+                rospy.logerr(f"Coordinate Transformation Error: {ve}")
+                continue
+            except Exception as e:
+                rospy.logerr(
+                    f"Unexpected error during coordinate transformation: {e}")
+                continue
+
+    # Save detected blocks to JSON file
+    with open("detected_blocks.json", "w") as json_file:
+        json.dump(detected_blocks_history, json_file, indent=4)
 
     rospy.loginfo(f"Detected {len(detected_blocks)} blocks in current frame.")
 
