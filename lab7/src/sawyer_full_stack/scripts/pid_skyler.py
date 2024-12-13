@@ -73,7 +73,7 @@ def get_trajectory(limb, kin, ik_solver, tag_pos, args):
 
     if task == 'line':
         # Convert tag_pos to numpy array and only use position components
-        target_pos = np.array(tag_pos[:3])
+        target_pos = np.array(tag_pos)
         print("TARGET POSITION:", target_pos)
         trajectory = LinearTrajectory(start_position=current_position, goal_position=target_pos, total_time=9)
     elif task == 'circle': # WE PROBABLY DONT USE THIS
@@ -163,17 +163,20 @@ def main():
     tuck()
     
     # this is used for sending commands (velocity, torque, etc) to the robot
-    ik_solver = IK("base", "right_gripper_tip")
+    ik_solver = IK("base", "right_hand_camera")
     limb = intera_interface.Limb("right")
     kin = sawyer_kinematics("right")
 
     # Lookup the AR tag position.
-    z_offset = 0.136
+    z_offset = 0.12
+    x_offset = 0 #0.1
+    y_offset = 0 #-0.03
     tag_pos_above = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
-    tag_pos = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+    # tag_pos = [0.6460573135993091 + x_offset, -0.1749450668218313 + y_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
+    tag_pos = [0.680, 0.125, 0.422 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
 
 
-    end_pos = [0.694, 0.008, -0.103 + z_offset, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
+    end_pos = [0.6341941013168179, -0.2238770545595416, -0.10174208844080695 + z_offset, 0, 1, 0, 0] # TEST THAT IT GOES BACK TO WHERE WE STARTED
 
 
     # Get an appropriate RobotTrajectory for the task (circular, linear, or square)
@@ -182,7 +185,7 @@ def main():
     # is a jointspace or torque controller, it should return a trajectory where the positions
     # and velocities are the positions and velocities of each joint.
     robot_trajectory = get_trajectory(limb, kin, ik_solver, tag_pos, args)
-    robot_trajectory_2 = get_trajectory(limb, kin, ik_solver, end_pos, args)
+    robot_trajectory_2 = get_trajectory(limb, kin, ik_solver, tag_pos, args)
 
     # This is a wrapper around MoveIt! for you to use.  We use MoveIt! to go to the start position
     # of the trajectory
@@ -203,7 +206,7 @@ def main():
         plan = planner.retime_trajectory(plan, 0.3)
     planner.execute_plan(plan[1])
 
-    tuck()
+    # tuck()
 
     if args.controller_name == "pid":
         try:
@@ -212,6 +215,9 @@ def main():
             sys.exit()
         # Uses MoveIt! to execute the trajectory.
         planner.execute_plan(robot_trajectory)
+
+        tuck()
+        
         # ADD CODE TO CLOSE THE GRIPPER
         print("BEFORE CLOSING GRIPPER")
         right_gripper.close()

@@ -60,7 +60,8 @@ def main():
 
         # If a Sawyer does not have a gripper, replace '_gripper_tip' with '_wrist' instead
         #Switch when needed link = "right_gripper_tip"
-        link = "stp_022312TP99620_tip_1"
+        # link = "stp_022312TP99620_tip_1"
+        link = "right_hand_camera"
 
         request.ik_request.ik_link_name = link
         # request.ik_request.attempts = 20
@@ -70,14 +71,18 @@ def main():
         ###group.set_position_target([0.5, 0.5, 0.0])
         # PICK
         # should be 0.670, 0.181, -0.081
-        request.ik_request.pose_stamped.pose.position.x = 0.65
-        request.ik_request.pose_stamped.pose.position.y = -0.01
-        
-        request.ik_request.pose_stamped.pose.position.z = -0.09894391417188214
-        request.ik_request.pose_stamped.pose.orientation.x = 0.0
-        request.ik_request.pose_stamped.pose.orientation.y = 1.0
-        request.ik_request.pose_stamped.pose.orientation.z = 0.0
-        request.ik_request.pose_stamped.pose.orientation.w = 0.0
+        # 0.6496786873208795, -0.039610976832769845, -0.10166218522505455
+        # -0.018, 0.710, -0.019, 0.704
+        x, y, z = 0.680, 0.125, 0.422
+        xw, yw, zw, ww = -0.7, 0.7, 0, 0
+        # xw, yw, zw, ww = -0.018, 0.710, -0.019, 0.704
+        request.ik_request.pose_stamped.pose.position.x = x
+        request.ik_request.pose_stamped.pose.position.y = y
+        request.ik_request.pose_stamped.pose.position.z = z + 0.25
+        request.ik_request.pose_stamped.pose.orientation.x = xw
+        request.ik_request.pose_stamped.pose.orientation.y = yw
+        request.ik_request.pose_stamped.pose.orientation.z = zw
+        request.ik_request.pose_stamped.pose.orientation.w = ww
         
         try:
             # Send the request to the service
@@ -111,7 +116,7 @@ def main():
             print("Service call failed: %s"%e)
 
         # Set the desired orientation for the end effector HERE
-
+        s = input("stop")
         print('Closing...')
         right_gripper.close()
         rospy.sleep(1.0)
