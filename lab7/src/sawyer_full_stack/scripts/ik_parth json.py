@@ -173,8 +173,8 @@ def get_placement_coordinates(json_file, block_num):
         raise ValueError(f"File {json_file} not found.")
     
 def main():
-    json_file_cv = "data.json"  # Replace with your JSON file name
-    json_file_gpt = "data.json"  # Replace with your JSON file name
+    json_file_cv =  "lab7\src\sawyer_full_stack\scripts\detected_blocks.json"  # Replace with your JSON file name
+    json_file_gpt = "lab7\src\sawyer_full_stack\scripts\ConvertedGPTWorldPts.json"  # Replace with your JSON file name
 
     rospy.sleep(1)
 
