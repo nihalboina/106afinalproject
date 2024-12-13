@@ -132,7 +132,7 @@ if box is not None:
             cv2.circle(output_image, (int(left_edge_x), int(left_edge_y)), 5, stud_color, -1)
 
 # Save generated JSON
-generated_json_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTCoord->RealWorldCoord/Generated_UV_Points.json"
+generated_json_path = "/Users/rohilkhare/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
 with open(generated_json_path, 'w') as f:
     json.dump(generated_json, f, indent=4)
 
