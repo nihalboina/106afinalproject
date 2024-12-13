@@ -110,7 +110,8 @@ def detect_objects(image, camera_transform, n=1):
         list of tuples: List containing (cX, cY, area) for each detected object.
     """
 
-    MAX_AREA_THRESHOLD = 5e-5  # Hard-coded maximum allowed area
+    MAX_AREA_THRESHOLD = 1e-4  # Hard-coded maximum allowed area
+    MIN_AREA_THRESHOLD = 9e-6  # Hard-coded maximum allowed area
 
     # Apply Gaussian Blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
@@ -133,6 +134,9 @@ def detect_objects(image, camera_transform, n=1):
     for cnt in filtered_contours:
         area = cv2.contourArea(cnt)
         if area > MAX_AREA_THRESHOLD:
+            rospy.loginfo("Ignoring object with area greater than threshold.")
+            continue
+        if area < MIN_AREA_THRESHOLD:
             rospy.loginfo("Ignoring object with area greater than threshold.")
             continue
     
