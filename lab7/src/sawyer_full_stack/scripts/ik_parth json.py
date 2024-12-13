@@ -195,7 +195,14 @@ def main():
         # Set the desired orientation for the end effector HERE
         ###group.set_position_target([0.5, 0.5, 0.0])
         
-        z_offset = 0.15
+        z_offset = 0.2
+        x_pick_offset = 0
+        y_pick_offset = 0
+        z_pick_offset = 0
+
+        x_place_offset = 0
+        y_place_offset = 0
+        z_place_offset = 0
 
         #get in cv coordinates block 0
         block_pick_num = 0
@@ -207,7 +214,7 @@ def main():
 
         # pick 1
         pick_or_place(request, compute_ik, x1, y1, z1 + z_offset)
-        pick_or_place(request, compute_ik, x1, y1, z1, 0)
+        pick_or_place(request, compute_ik, x1 + x_pick_offset, y1 + y_pick_offset, z1 + z_pick_offset, 0)
         
         tuck()
 
@@ -221,7 +228,7 @@ def main():
 
         # place 1
         pick_or_place(request, compute_ik, x2, y2, z2 + z_offset)
-        pick_or_place(request, compute_ik, x2, y2, z2, 1)
+        pick_or_place(request, compute_ik, x2 + x_place_offset, y2 + y_place_offset, z2 + z_place_offset, 1)
         pick_or_place(request, compute_ik, x2, y2, z2 + z_offset)
         
         tuck()
@@ -235,7 +242,7 @@ def main():
             print(e)
          
         pick_or_place(request, compute_ik, x3, y3, z3 + z_offset)
-        pick_or_place(request, compute_ik, x3, y3, z3, 0)
+        pick_or_place(request, compute_ik, x3 + x_pick_offset, y3+ y_pick_offset, z3 + z_pick_offset, 0)
         
         tuck()
 
@@ -247,7 +254,7 @@ def main():
         except ValueError as e:
             print(e)
         pick_or_place(request, compute_ik, x4, y4, z4 + z_offset)
-        pick_or_place(request, compute_ik, x4, y4, z4, 1)
+        pick_or_place(request, compute_ik, x4 + x_place_offset, y4 + y_place_offset, z4 + z_place_offset, 1)
         pick_or_place(request, compute_ik, x4, y4, z4 + z_offset)
         
         tuck()
@@ -261,7 +268,7 @@ def main():
             print(e)
          
         pick_or_place(request, compute_ik, x5, y5, z5 + z_offset)
-        pick_or_place(request, compute_ik, x5, y5, z5, 0)
+        pick_or_place(request, compute_ik, x5 + x_pick_offset, y5+ y_pick_offset, z5 + z_pick_offset, 0)
         
         tuck()
 
@@ -274,7 +281,7 @@ def main():
             print(e)
 
         pick_or_place(request, compute_ik, x6, y6, z6 + z_offset)
-        pick_or_place(request, compute_ik, x6, y6, z6, 1)
+        pick_or_place(request, compute_ik, x6 + x_place_offset, y6 + y_place_offset + z_place_offset, z6, 1)
         pick_or_place(request, compute_ik, x6, y6, z6 + z_offset)
         
         tuck()
