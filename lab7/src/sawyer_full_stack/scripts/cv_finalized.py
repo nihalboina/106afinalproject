@@ -152,19 +152,17 @@ def detect_objects(image, camera_transform, n=1):
     return detected_objects
 
 
-<<<<<<< HEAD
-=======
 # Define a threshold for similarity
 SIMILARITY_THRESHOLD = 10  # Adjust this value as needed
 
 # Function to check if two coordinates are similar
 def are_coordinates_similar(coord1, coord2):
+    print(f"coord1, 2: {coord1, coord2}")
     return (abs(coord1[0] - coord2[0]) < SIMILARITY_THRESHOLD and
             abs(coord1[1] - coord2[1]) < SIMILARITY_THRESHOLD)
 
 # Initialize a dictionary to store detected blocks
 detected_blocks_history = {}
->>>>>>> 7d9d58db99ce1bd6bd2eebd4b86f8cac3eb67dd0
 
 def run_cv(image_msg, camera_transform, max_objects=2):
     """
@@ -197,7 +195,7 @@ def run_cv(image_msg, camera_transform, max_objects=2):
         # Check for similar blocks in history
         found_similar = False
         for key in list(detected_blocks_history.keys()):
-            if are_coordinates_similar((cX, cY), detected_blocks_history[key]['camera_coordinates']):
+            if are_coordinates_similar((cX, cY), list(detected_blocks_history[key]['camera_coordinates'].values())):
                 found_similar = True
                 break
         

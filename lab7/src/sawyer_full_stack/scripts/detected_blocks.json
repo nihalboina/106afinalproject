@@ -1,0 +1,112 @@
+{
+    "0": {
+        "area": 2.343036897341222e-05,
+        "camera_coordinates": {
+            "x": 565,
+            "y": 179
+        },
+        "pose": {
+            "position": {
+                "x": 0.7254518468834936,
+                "y": -0.05802808393882669,
+                "z": -0.1004106553319592
+            },
+            "orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            }
+        },
+        "classification": "block.stl",
+        "confidence": 100.0
+    },
+    "1": {
+        "area": 2.225645048621605e-05,
+        "camera_coordinates": {
+            "x": 550,
+            "y": 290
+        },
+        "pose": {
+            "position": {
+                "x": 0.628177044555099,
+                "y": -0.043480235671813736,
+                "z": -0.10017246147383041
+            },
+            "orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            }
+        },
+        "classification": "block.stl",
+        "confidence": 100.0
+    },
+    "2": {
+        "area": 5.3318103897026514e-05,
+        "camera_coordinates": {
+            "x": 482,
+            "y": 368
+        },
+        "pose": {
+            "position": {
+                "x": 0.561043413979064,
+                "y": 0.016770501285133785,
+                "z": -0.09992105462392031
+            },
+            "orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            }
+        },
+        "classification": "block.stl",
+        "confidence": 100.0
+    },
+    "3": {
+        "area": 3.420957765730079e-06,
+        "camera_coordinates": {
+            "x": 487,
+            "y": 5
+        },
+        "pose": {
+            "position": {
+                "x": 0.884907058293197,
+                "y": 0.006706956793951779,
+                "z": -0.10064758885664615
+            },
+            "orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            }
+        },
+        "classification": "block.stl",
+        "confidence": 100.0
+    },
+    "4": {
+        "area": 7.034395881122535e-06,
+        "camera_coordinates": {
+            "x": 57,
+            "y": 267
+        },
+        "pose": {
+            "position": {
+                "x": 0.6470451119409866,
+                "y": 0.4064186611458221,
+                "z": -0.09943406435334001
+            },
+            "orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            }
+        },
+        "classification": "block.stl",
+        "confidence": 100.0
+    }
+}
