@@ -2,101 +2,24 @@
   "blocks": [
       {
           "block_id": 1,
-          "position": [-60.0, -60.0, 0.0],
+          "position": [-30.0, 0.0, 0.0],
           "orientation": [0, 0, 0],
           "color": "gray",
           "placement_order": 1
       },
       {
           "block_id": 2,
-          "position": [-60.0, 0.0, 0.0],
+          "position": [30.0, 0.0, 0.0],
           "orientation": [0, 0, 0],
           "color": "gray",
           "placement_order": 2
       },
       {
           "block_id": 3,
-          "position": [-60.0, 60.0, 0.0],
+          "position": [0.0, 0.0, 60.0],
           "orientation": [0, 0, 0],
           "color": "gray",
           "placement_order": 3
-      },
-      {
-          "block_id": 4,
-          "position": [0.0, -60.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 4
-      },
-      {
-          "block_id": 5,
-          "position": [0.0, 0.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 5
-      },
-      {
-          "block_id": 6,
-          "position": [0.0, 60.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 6
-      },
-      {
-          "block_id": 7,
-          "position": [60.0, -60.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 7
-      },
-      {
-          "block_id": 8,
-          "position": [60.0, 0.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 8
-      },
-      {
-          "block_id": 9,
-          "position": [60.0, 60.0, 0.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 9
-      },
-      {
-          "block_id": 10,
-          "position": [-30.0, -30.0, 40.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 10
-      },
-      {
-          "block_id": 11,
-          "position": [-30.0, 30.0, 40.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 11
-      },
-      {
-          "block_id": 12,
-          "position": [30.0, -30.0, 40.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 12
-      },
-      {
-          "block_id": 13,
-          "position": [30.0, 30.0, 40.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 13
-      },
-      {
-          "block_id": 14,
-          "position": [0.0, 0.0, 80.0],
-          "orientation": [0, 0, 0],
-          "color": "gray",
-          "placement_order": 14
       }
   ]
 }
