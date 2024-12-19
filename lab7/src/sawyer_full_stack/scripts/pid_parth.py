@@ -441,6 +441,9 @@ def main():
         print('Closing...')
         right_gripper.close()
         rospy.sleep(1.0)
+        #incase it didn't work, doing again
+        right_gripper.close()
+        rospy.sleep(1.0)
 
 
         #3. go slightly vertically above pick position
@@ -574,7 +577,9 @@ def main():
         print('Opening...')
         right_gripper.open()
         rospy.sleep(1.0)
-
+        #incase didn't work
+        right_gripper.open()
+        rospy.sleep(1.0)
 
         #6. go slightly vertically above place position
         robot_trajectory = get_trajectory(limb, kin, ik_solver, place_hover_pos, args)
