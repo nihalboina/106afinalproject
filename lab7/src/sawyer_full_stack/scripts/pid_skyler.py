@@ -169,16 +169,8 @@ def main():
 
     # Lookup the AR tag position.
     z_offset = 0.12
-<<<<<<< HEAD
-    x_offset = 0 #0.1
-    y_offset = 0 #-0.03
-    tag_pos_above = [0.620, 0.295, -0.127 + z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
-    # tag_pos = [0.6460573135993091 + x_offset, -0.1749450668218313 + y_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
-    tag_pos = [0.560, -0.164, -0.136 +  z_offset, 0, 1, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
-=======
     x_cam_offset = 0.1
     y_cam_offset = 0.03
->>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
 
     # tag_pos = [0.6460573135993091 + x_cam_offset, -0.1749450668218313 + y_cam_offset, -0.10282176833689616 + 0.2 + z_offset, -0.7, 0.7, 0, 0] # TODO: CHANGE THIS BASED ON WHAT OUR 
     x1, y1, z1 = 
@@ -256,16 +248,12 @@ def main():
         plan = planner.retime_trajectory(plan, 0.3)
     planner.execute_plan(plan[1])
 
-<<<<<<< HEAD
-    tuck()
-=======
     try:
         input('Press <Enter> to execute the trajectory using pid')
     except KeyboardInterrupt:
         sys.exit()
     # Move to the trajectory end position
     planner.execute_plan(robot_trajectory2)
->>>>>>> 860d06753ef9ca76460596bba87e3eaf8a52afa6
 
     # Open gripper
     right_gripper.open()
