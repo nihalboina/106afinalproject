@@ -1,4 +1,4 @@
-git #!/usr/bin/env python
+#!/usr/bin/env python
 """
 Starter script for 106a lab7. 
 Author: Chris Correa
@@ -263,7 +263,7 @@ def main():
     Examples of how to run me:
     python scripts/main.py --help <------This prints out all the help messages
     and describes what each parameter is
-    python scripts/main.py -t line -ar_marker 3 -c torque --log
+    python pid_parth.py -t line -ar_marker 3 -c pid --log
  
     You can also change the rate, timeout if you want
     """
