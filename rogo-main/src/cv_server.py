@@ -12,7 +12,7 @@ import cv2
 import numpy as np
 import tf2_ros
 # Importing the CameraTransform class
-from claude_attempt import CameraTransform
+from camera_transform import CameraTransform
 import tf
 from tf.transformations import quaternion_matrix
 
@@ -238,7 +238,7 @@ def run_cv_output(image, camera_transform):
         print(f"Corrected Computed Rotation Angle: {angle:.2f} degrees")
 
     # Load JSON data from the GPT file
-    json_file_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/GPTComponent/Chatgpt_input.json"
+    json_file_path = "Chatgpt_input.json"
     with open(json_file_path, 'r') as f:
         json_data_file = json.load(f)
 
@@ -289,7 +289,7 @@ def run_cv_output(image, camera_transform):
                 "z": round(real_z, 4)
             })
 
-    with open("/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/main/src/output.json", 'w') as f:
+    with open("output.json", 'w') as f:
         json.dump(output_data, f, indent=4)
     # Overlay the stud pattern if we have the box
     if box is not None:
@@ -320,7 +320,7 @@ def run_cv_output(image, camera_transform):
                            int(left_edge_y)), 5, stud_color, -1)
 
     # Save generated JSON
-    generated_json_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
+    generated_json_path = "Generated_UV_Points.json"
     with open(generated_json_path, 'w') as f:
         json.dump(generated_json, f, indent=4)
 
