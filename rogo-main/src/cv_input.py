@@ -44,8 +44,9 @@ def tuck():
     """
     if input('Would you like to tuck the arm? (y/n): ') == 'y':
         rospack = rospkg.RosPack()
-        path = rospack.get_path('sawyer_full_stack')
-        launch_path = path + '/launch/custom_sawyer_tuck.launch'
+        # path = rospack.get_path('sawyer_full_stack')
+        # launch_path = path + '/launch/custom_sawyer_tuck.launch'
+        launch_path = '/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/lab7/src/sawyer_full_stack/launch/custom_sawyer_tuck.launch'
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])
