@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+
+all cv related stuff for 1) input mapping (figuring out real world coords of input blocks), and 2) output mapping (figuring out where to place input blocks to match structure)
+
+
+"""
+
 
 import rospy
 import rospkg
@@ -47,7 +54,7 @@ def tuck():
         rospack = rospkg.RosPack()
         # path = rospack.get_path('sawyer_full_stack')
         # launch_path = path + '/launch/custom_sawyer_tuck.launch'
-        launch_path = '/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/lab7/src/sawyer_full_stack/launch/custom_sawyer_tuck.launch'
+        launch_path = '106afinalproject/rogo-main/src/launch/custom_sawyer_tuck.launch'
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])

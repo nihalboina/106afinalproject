@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+"""
+
+all PID action-related using the cv output
+
+"""
 import sys
 import argparse
 import numpy as np
@@ -33,8 +39,8 @@ def tuck():
     """
     if input('Would you like to tuck the arm? (y/n): ') == 'y':
         rospack = rospkg.RosPack()
-        path = rospack.get_path('sawyer_full_stack')
-        launch_path = path + '/launch/custom_sawyer_tuck.launch'
+        # path = rospack.get_path('sawyer_full_stack')
+        launch_path = '106afinalproject/rogo-main/src/launch/custom_sawyer_tuck.launch'
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
         launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_path])

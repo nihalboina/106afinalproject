@@ -1,3 +1,8 @@
+To run:
+1) connect to sawyer
+2) run intera interface, action server commands
+3) run cv_server.py and action_server.py in rogo-main/src
+
 Brief overview:
 
 in_gen (instruction generation)
