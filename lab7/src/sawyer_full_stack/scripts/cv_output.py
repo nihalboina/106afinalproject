@@ -24,8 +24,6 @@ image_path = "/Users/rohilkhare/106afinalproject/in_gen/sawyer/CV/src/debug/1733
 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
 
-
-
 def quaternion_to_rotation_matrix(quaternion):
     """
     Convert a quaternion into a rotation matrix.
@@ -82,8 +80,7 @@ def subscribe_once(topic_name, message_type):
         return None
 
 
-
-def run_cv(image, camera_transform):
+def run_output(image, camera_transform):
     # Camera matrix (updated with provided intrinsics)
     K = np.array([
         [627.794983, 0.0, 360.174988],
@@ -96,7 +93,8 @@ def run_cv(image, camera_transform):
 
     # Get the optimal new camera matrix
     h, w = image.shape[:2]
-    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+    new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+        K, D, (w, h), 1, (w, h))
 
     # Undistort the image
     undistorted_image = cv2.undistort(image, K, D, None, new_camera_matrix)
@@ -111,13 +109,15 @@ def run_cv(image, camera_transform):
     # Apply Sobel Edge Detection (X and Y)
     sobel_x = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(blurred, cv2.CV_64F, 0, 1, ksize=3)
-    sobel_combined = cv2.convertScaleAbs(sobel_x) + cv2.convertScaleAbs(sobel_y)
+    sobel_combined = cv2.convertScaleAbs(
+        sobel_x) + cv2.convertScaleAbs(sobel_y)
 
     # Use binary thresholding on Sobel edges
     _, thresh = cv2.threshold(sobel_combined, 100, 255, cv2.THRESH_BINARY)
 
     # Find contours from the Sobel edge-detected image
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(
+        thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     output_image = cv2.cvtColor(undistorted_image, cv2.COLOR_GRAY2BGR)
     midpoint_x, midpoint_y, angle = None, None, None
@@ -126,7 +126,6 @@ def run_cv(image, camera_transform):
     generated_json = {"u_v_points": []}
     output_data = {}
     output_data["world_points"] = []
-    
 
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
@@ -166,16 +165,17 @@ def run_cv(image, camera_transform):
 
         # Plot only the GPT-based JSON data points
 
-        
         for block in json_data_file["blocks"]:
             x_original, y_original = block["position"][:2]
             # Apply rotation and scaling
-            rotated_position = rotation_matrix @ np.array([x_original * 0.7, y_original * 0.75])
+            rotated_position = rotation_matrix @ np.array(
+                [x_original * 0.7, y_original * 0.75])
             x_final = int(midpoint_x + rotated_position[0])
             y_final = int(midpoint_y - rotated_position[1])
 
             # Add to generated JSON
-            generated_json["u_v_points"].append({"block_id": block["block_id"], "u": x_final, "v": y_final})
+            generated_json["u_v_points"].append(
+                {"block_id": block["block_id"], "u": x_final, "v": y_final})
 
             # Set color based on the block's color attribute
             if block["color"] == "gray":
@@ -187,18 +187,20 @@ def run_cv(image, camera_transform):
 
             # Draw the block position as a circle
             cv2.circle(output_image, (x_final, y_final), 5, color, -1)
-            layer_number = int(block["position"][2] / 40.0)  # Normalize by dividing by 40 since the layers are in increments of 40
+            # Normalize by dividing by 40 since the layers are in increments of 40
+            layer_number = int(block["position"][2] / 40.0)
             real_x, real_y, real_z = camera_transform.distorted_pixel_to_base(
                 x_final, y_final, layer_num=layer_number)
-            print(f"Block ID {block['block_id']} -> Translated (u, v): ({x_final}, {y_final}) -> Translated real-world (x,y,z): ({real_x, real_y, real_z})")
+            print(
+                f"Block ID {block['block_id']} -> Translated (u, v): ({x_final}, {y_final}) -> Translated real-world (x,y,z): ({real_x, real_y, real_z})")
 
             output_data["world_points"].append({
-                    "block_id": block['block_id'],
-                    "x": round(real_x, 4),
-                    "y": round(real_y, 4),
-                    "z": round(real_z, 4)
-                })
-            
+                "block_id": block['block_id'],
+                "x": round(real_x, 4),
+                "y": round(real_y, 4),
+                "z": round(real_z, 4)
+            })
+
     with open("/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/main/src/output.json", 'w') as f:
         json.dump(output_data, f, indent=4)
     # Overlay the stud pattern if we have the box
@@ -213,17 +215,21 @@ def run_cv(image, camera_transform):
         stud_color = (255, 0, 0)
 
         for left_edge_i in range(8):
-            left_edge_x = left_edge[0][0] + (left_edge[1][0] - left_edge[0][0]) * (left_edge_i + 0.5)/8
-            left_edge_y = left_edge[0][1] + (left_edge[1][1] - left_edge[0][1]) * (left_edge_i + 0.5)/8
+            left_edge_x = left_edge[0][0] + \
+                (left_edge[1][0] - left_edge[0][0]) * (left_edge_i + 0.5)/8
+            left_edge_y = left_edge[0][1] + \
+                (left_edge[1][1] - left_edge[0][1]) * (left_edge_i + 0.5)/8
 
             left_edge_x += (top_edge[1][0] - top_edge[0][0]) / 16
             left_edge_y += (top_edge[1][1] - top_edge[0][1]) / 16
-            cv2.circle(output_image, (int(left_edge_x), int(left_edge_y)), 5, stud_color, -1)
+            cv2.circle(output_image, (int(left_edge_x),
+                       int(left_edge_y)), 5, stud_color, -1)
 
             for top_edge_i in range(7):
                 left_edge_x += (top_edge[1][0] - top_edge[0][0]) / 8
                 left_edge_y += (top_edge[1][1] - top_edge[0][1]) / 8
-                cv2.circle(output_image, (int(left_edge_x), int(left_edge_y)), 5, stud_color, -1)
+                cv2.circle(output_image, (int(left_edge_x),
+                           int(left_edge_y)), 5, stud_color, -1)
 
     # Save generated JSON
     generated_json_path = "/home/cc/ee106a/fa24/class/ee106a-aei/final_project/106afinalproject/in_gen/GPTComponent/GPTCoordToBase/Generated_UV_Points.json"
@@ -240,7 +246,7 @@ def run_cv(image, camera_transform):
     return output_image
 
     # cv2.imshow("Undistorted Image with Overlaid GPT Coordinates", output_image)
-    # cv2.waitKey(1) 
+    # cv2.waitKey(1)
 
 
 def main():
@@ -288,8 +294,9 @@ def main():
             image_msg, desired_encoding='mono8')
         output_image = run_cv(blocks_image, camera_transform)
 
-        cv2.imshow("Undistorted Image with Overlaid GPT Coordinates", output_image)
-        cv2.waitKey(1) 
+        cv2.imshow(
+            "Undistorted Image with Overlaid GPT Coordinates", output_image)
+        cv2.waitKey(1)
 
         # Draw detected blocks on the image
         # try:
