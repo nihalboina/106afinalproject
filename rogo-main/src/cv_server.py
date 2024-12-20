@@ -168,7 +168,7 @@ def combine_block_runs(published, current):
     return published
 
 
-def run_output(image, camera_transform):
+def run_cv_output(image, camera_transform):
     # Camera matrix (updated with provided intrinsics)
     K = np.array([
         [627.794983, 0.0, 360.174988],
@@ -359,7 +359,7 @@ def run_cv(image_msg, camera_transform, max_objects=2, publish_blocks=[], run_ou
         return []
 
     if run_output:
-        run_output(blocks_image, camera_transform)
+        run_cv_output(blocks_image, camera_transform)
 
     # Detect objects using edge detection
     detected_centroids = detect_objects(
