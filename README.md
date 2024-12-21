@@ -1,3 +1,7 @@
+GPT Component contains files related to the GPT prompting and output model visualizer
+rogo-main contains files related to the CV block recognition and coordinate transformation, the json outputs from the GPT and CV, as well as action_server.py which interprets those json coordinates and actually actuates the Sawyer to perform our building tasks
+
+
 To run:
 1) connect to sawyer
 2) run intera interface, action server commands
